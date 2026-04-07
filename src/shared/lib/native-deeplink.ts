@@ -11,7 +11,7 @@ export function buildNativeAuthCallbackUrl(queryString: string): string {
 }
 
 /**
- * Transactional `/open` handoff: `path` query → `scheme://` + path (see buzlee-app `isHttpsOpenAppLandingUrl`).
+ * Transactional `/open` handoff: `path` query → `scheme://` + path for “Open in app” (see buzlee-app `isHttpsOpenAppLandingUrl`).
  */
 export function buildNativeOpenUrl(pathParam: string): string {
   const scheme = getPublicAppScheme();
