@@ -33,7 +33,7 @@ export default async function AuthCallbackPage({
   const nativeHref = buildNativeAuthCallbackUrl(queryString);
 
   return (
-    <div className="flex min-h-full flex-1 flex-col items-center justify-center bg-zinc-50 px-4 py-16 dark:bg-zinc-950">
+    <div className="flex min-h-full flex-1 flex-col items-center justify-center bg-background px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))]">
       <OpenInAppPanel
         nativeHref={nativeHref}
         heading="Continue in the Buzlee app"
