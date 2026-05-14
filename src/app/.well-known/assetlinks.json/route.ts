@@ -1,17 +1,16 @@
 import { NextResponse } from "next/server";
 
+import { collectAndroidAppLinkFingerprints } from "@/shared/lib/android-app-link-sha256";
+
 /**
  * Android App Links — JSON array; no redirect.
- * `BUZLEE_ANDROID_SHA256` comma-separated SHA-256 cert fingerprints (see Play Console / `keytool`).
+ * Fingerprints: `BUZLEE_ANDROID_SHA256` (comma-separated) and/or one-per-line
+ * `data/android-app-link-sha256.txt` (Play App Signing cert — not secret).
  */
 export async function GET() {
   const packageName =
     process.env.BUZLEE_ANDROID_PACKAGE_NAME?.trim() || "com.buzlee";
-  const raw = process.env.BUZLEE_ANDROID_SHA256 ?? "";
-  const sha256_cert_fingerprints = raw
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
+  const sha256_cert_fingerprints = collectAndroidAppLinkFingerprints();
 
   const body =
     sha256_cert_fingerprints.length === 0

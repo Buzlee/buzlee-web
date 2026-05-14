@@ -1,0 +1,6 @@
+# Android App Links — SHA-256 certificate fingerprints (one per line; colons optional).
+# Production: Google Play Console → Your app → Release → App integrity →
+# App signing key certificate → SHA-256 certificate fingerprint.
+#
+# After Play App Signing, use the *App signing* certificate (not the upload key), unless you
+# know you distribute only with the upload key.
