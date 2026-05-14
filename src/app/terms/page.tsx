@@ -115,11 +115,60 @@ const sections: Section[] = [
         </div>
 
         <div className="flex flex-col gap-2">
+          <h3>Analytics and crash reporting providers</h3>
+          <p>
+            We use <strong>PostHog</strong> for product analytics and session
+            replay. When you are signed in, we identify you to PostHog using
+            your account email, name, and account role so that usage events
+            can be associated with your account. PostHog session replay
+            records your interactions with the app, the layout of screens you
+            visit, console logs, and network activity. Both text input fields
+            and images are masked in session replays, so the text you type
+            (such as passwords, search queries, or messages) and the images
+            displayed on screen (such as flyer media, logos, or cover photos)
+            are not captured. PostHog data is processed in the United States.
+          </p>
+          <p>
+            We use <strong>Sentry</strong> for crash reporting and performance
+            monitoring. Sentry receives error details, stack traces, device
+            information, and performance traces for a portion of app activity
+            so we can diagnose and fix issues. Sentry is configured to omit
+            default user-identifying information (such as IP address) from
+            error events, and we do not attach your account identifiers to
+            Sentry reports.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <h3>Device identifiers and push tokens</h3>
+          <p>
+            To deliver the app and notifications, we collect device-level
+            identifiers such as a device or installation identifier and, when
+            you enable push notifications, a push notification token issued by
+            Apple Push Notification service or Firebase Cloud Messaging. We
+            use these identifiers to send notifications to your device, to
+            associate sessions with your account, and to investigate
+            performance and security issues.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2">
           <h3>Communications</h3>
           <p>
             If you contact Buzlee Support or receive transactional emails, we
             collect your email address, the content of your message, delivery
             status, and related support details.
+          </p>
+        </div>
+
+        <div className="flex flex-col gap-2">
+          <h3>Information we do not collect</h3>
+          <p>
+            Buzlee does not collect payment card numbers, financial account
+            details, health or fitness data, your contacts, your photo or
+            media library beyond the images and PDFs you choose to upload, or
+            advertising identifiers (IDFA). Buzlee does not include
+            third-party advertising.
           </p>
         </div>
       </div>
@@ -195,7 +244,10 @@ const sections: Section[] = [
             including hosting, authentication, database, file storage, email
             delivery, push notifications, mapping and geocoding, and analytics
             providers. These providers may process information only as needed
-            to provide services to Buzlee.
+            to provide services to Buzlee and are required by contract to
+            provide the same or equivalent protection of your information as
+            this Privacy Policy describes, and to use it only for the purposes
+            we authorize.
           </p>
         </div>
 
@@ -217,6 +269,25 @@ const sections: Section[] = [
           </p>
         </div>
       </div>
+    ),
+  },
+  {
+    id: "tracking",
+    title: "Tracking across other apps and websites",
+    body: (
+      <>
+        <p>
+          Buzlee does not track you across apps and websites owned by other
+          companies. We do not use third-party advertising networks, do not
+          share your information with data brokers, and do not collect the
+          iOS Advertising Identifier (IDFA).
+        </p>
+        <p>
+          Because Buzlee does not engage in tracking as defined by Apple's App
+          Tracking Transparency framework, the app does not prompt you for
+          tracking permission.
+        </p>
+      </>
     ),
   },
   {
