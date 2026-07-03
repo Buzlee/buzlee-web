@@ -4,3 +4,9 @@
 #
 # After Play App Signing, use the *App signing* certificate (not the upload key), unless you
 # know you distribute only with the upload key.
+
+# EAS upload key (production profile, com.buzlee) — covers production builds installed outside Play
+EF:1B:7B:E7:90:FC:BB:DE:84:93:7E:93:33:23:3C:2E:9E:C0:E1:3F:FF:56:8D:35:A4:99:2E:90:C8:0E:6B:26
+
+# Play App Signing key certificate (Play Console → App integrity) — covers Play-installed builds
+FF:E1:A8:5E:C0:66:E0:47:F9:74:C6:0A:C0:30:73:24:54:B8:35:F7:87:A1:B3:B8:13:96:D4:92:BE:2E:0E:98
