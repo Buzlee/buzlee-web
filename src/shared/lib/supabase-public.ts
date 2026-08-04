@@ -38,10 +38,20 @@ const FLYER_SELECT =
 const BUSINESS_SELECT =
   "id,name,description,address,website,logo_url,cover_photo_url";
 
+/** Tolerate values pasted with surrounding quotes or whitespace (e.g. copied from a quoted .env). */
+function cleanEnv(value: string | undefined): string {
+  return (value ?? "").trim().replace(/^["']+|["']+$/g, "");
+}
+
 function getSupabaseConfig(): { url: string; anonKey: string } | null {
-  const url = process.env.BUZLEE_SUPABASE_URL;
-  const anonKey = process.env.BUZLEE_SUPABASE_ANON_KEY;
+  const url = cleanEnv(process.env.BUZLEE_SUPABASE_URL);
+  const anonKey = cleanEnv(process.env.BUZLEE_SUPABASE_ANON_KEY);
   if (!url || !anonKey) return null;
+  try {
+    new URL(url);
+  } catch {
+    return null;
+  }
   return { url: url.replace(/\/$/, ""), anonKey };
 }
 
