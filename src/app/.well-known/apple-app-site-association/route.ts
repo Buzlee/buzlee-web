@@ -20,7 +20,13 @@ export async function GET() {
           : [
               {
                 appIDs,
-                paths: ["/auth/*", "/open", "/open/*"],
+                paths: [
+                  "/auth/*",
+                  "/open",
+                  "/open/*",
+                  "/flyer/*",
+                  "/business/*",
+                ],
               },
             ],
     },
