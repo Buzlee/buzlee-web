@@ -44,8 +44,15 @@ function cleanEnv(value: string | undefined): string {
 }
 
 function getSupabaseConfig(): { url: string; anonKey: string } | null {
-  const url = cleanEnv(process.env.BUZLEE_SUPABASE_URL);
-  const anonKey = cleanEnv(process.env.BUZLEE_SUPABASE_ANON_KEY);
+  const url =
+    cleanEnv(process.env.BUZLEE_SUPABASE_URL) ||
+    cleanEnv(process.env.SUPABASE_URL) ||
+    cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL);
+  const anonKey =
+    cleanEnv(process.env.BUZLEE_SUPABASE_ANON_KEY) ||
+    cleanEnv(process.env.SUPABASE_ANON_KEY) ||
+    cleanEnv(process.env.SUPABASE_KEY) ||
+    cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
   if (!url || !anonKey) return null;
   try {
     new URL(url);
