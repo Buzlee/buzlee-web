@@ -1,5 +1,12 @@
 import type { Metadata } from "next";
 import Image from "next/image";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
 import { getPublicAppOrigin } from "@/shared/config/public-app";
 import {
   getAndroidPlayStoreUrl,
@@ -82,33 +89,37 @@ export default async function FlyerSharePage({
       />
       <div className="flex w-full flex-1 flex-col items-center justify-center gap-5">
         {flyer ? (
-          <div className="mx-auto w-full max-w-md overflow-hidden rounded-2xl border border-border/70 bg-card shadow-lg ring-1 ring-border/70">
+          <Card variant="flyer" className="mx-auto w-full max-w-md">
             {image ? (
-              <Image
-                src={image}
-                alt={flyer.title}
-                width={800}
-                height={600}
-                className="aspect-[4/3] w-full object-cover"
-              />
+              <div className="bg-muted/60">
+                <Image
+                  src={image}
+                  alt={flyer.title}
+                  width={800}
+                  height={1200}
+                  className="h-auto w-full object-contain"
+                  sizes="(max-width: 448px) 100vw, 448px"
+                  priority
+                />
+              </div>
             ) : null}
-            <div className="flex flex-col gap-1.5 px-6 py-5">
-              <h2 className="text-balance text-lg font-semibold tracking-tight text-foreground">
+            <CardHeader className="gap-1.5 border-t border-border/40 px-5 py-4">
+              <CardTitle className="text-balance text-base font-medium tracking-tight text-foreground">
                 {flyer.title}
-              </h2>
+              </CardTitle>
               {flyer.businesses?.name ? (
-                <p className="text-sm font-medium text-muted-foreground">
+                <CardDescription className="text-sm font-normal">
                   {flyer.businesses.name}
-                </p>
+                </CardDescription>
               ) : null}
-              {eventDate ? (
-                <p className="text-sm text-muted-foreground">{eventDate}</p>
-              ) : null}
-              {location ? (
-                <p className="text-sm text-muted-foreground">{location}</p>
-              ) : null}
-            </div>
-          </div>
+            </CardHeader>
+            {eventDate || location ? (
+              <CardContent className="flex flex-col gap-0.5 px-5 pb-4 pt-0 text-sm text-muted-foreground">
+                {eventDate ? <p>{eventDate}</p> : null}
+                {location ? <p>{location}</p> : null}
+              </CardContent>
+            ) : null}
+          </Card>
         ) : null}
         <OpenInAppPanel
           nativeHref={nativeHref}
