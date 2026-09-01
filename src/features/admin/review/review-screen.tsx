@@ -388,6 +388,9 @@ export function ReviewScreen() {
                       }
                     />
                     <FactRow label="Town" value={business.town_name ?? "—"} />
+                    {business.description ? (
+                      <FactRow label="About" value={business.description} />
+                    ) : null}
                   </div>
 
                   <div className="flex w-80 shrink-0 flex-col gap-4">
