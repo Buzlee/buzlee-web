@@ -10,7 +10,7 @@ export function PageHeader({
   actions,
   className,
 }: {
-  title: string;
+  title: ReactNode;
   actions?: ReactNode;
   className?: string;
 }) {
@@ -21,7 +21,7 @@ export function PageHeader({
         className,
       )}
     >
-      <h1 className="text-[22px] font-bold tracking-tight text-foreground">
+      <h1 className="min-w-0 text-[22px] font-bold tracking-tight text-foreground">
         {title}
       </h1>
       {actions ? (
