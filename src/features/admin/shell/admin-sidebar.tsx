@@ -27,6 +27,8 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
+import { useAdminResidents, useAdminStatusCounts } from "@/entities/admin";
+import { usePendingClaimsCount } from "@/entities/business-claim";
 import { supabase } from "@/shared/lib/supabase";
 
 type NavCounts = {
@@ -37,11 +39,28 @@ type NavCounts = {
 };
 
 /**
- * Nav counts. Placeholder until the data-layer port (Phase W-C) wires the
- * real status-count hooks; rendering degrades gracefully without counts.
+ * Live nav counts. Inbox = pending businesses + pending claims (amber pill);
+ * the rest are muted totals. Rendering degrades gracefully while loading —
+ * items simply show no count until the queries resolve.
  */
 function useAdminNavCounts(): NavCounts {
-  return {};
+  const { data: statusCounts } = useAdminStatusCounts();
+  const { data: pendingClaims } = usePendingClaimsCount();
+  const { data: residents } = useAdminResidents();
+
+  const pendingBusinesses = statusCounts?.businesses.pending;
+
+  return {
+    inbox:
+      pendingBusinesses === undefined && pendingClaims === undefined
+        ? undefined
+        : (pendingBusinesses ?? 0) + (pendingClaims ?? 0),
+    businesses: statusCounts
+      ? Object.values(statusCounts.businesses).reduce((sum, n) => sum + n, 0)
+      : undefined,
+    flyers: statusCounts ? (statusCounts.flyers.live ?? 0) : undefined,
+    residents: residents?.length,
+  };
 }
 
 const NAV_ITEMS = [

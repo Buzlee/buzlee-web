@@ -54,6 +54,27 @@ Deliberately **not** ported: `entities/business-claim/api/use-business-claim.ts`
 (RN/owner-side hooks) — replaced by the web-only
 `src/entities/business-claim/api/use-admin-claims.ts`.
 
+### Known deviations inside ported files
+
+Marked with `// Web fix:` comments. The web repo runs @supabase/supabase-js
+>= 2.100 (the app pins ^2.78), whose generated types are stricter about
+nullability; buzlee-app's originals do not compile under it unchanged:
+
+- `entities/admin/api/admin-queries.ts` — `approveBusiness`/`rejectBusiness`
+  email payloads: `user_id`/`email` coerced with `?? ""` (nullable for
+  unclaimed listings; the email edge function failure path already handles
+  bad recipients non-blockingly).
+- `entities/business-claim/api/business-claim-queries.ts` —
+  `submitBusinessClaimWithToken` optional RPC args use `?? undefined`
+  instead of `?? null` (omitted args hit the same SQL defaults).
+- All ported files are reformatted by Biome (double quotes, `import type`)
+  — re-sync by re-copying from buzlee-app and re-running `pnpm format`.
+
+Note: buzlee-app has since grown `fetchAdminStatusCounts` /
+`useAdminStatusCounts` / `AdminStatusCounts` (all status rows from the two
+count RPCs) — ported verbatim inside admin-queries.ts / use-admin.ts /
+model/types.ts and used for the sidebar nav counts.
+
 ## Web adaptations (new files, not ports)
 
 - `src/shared/lib/supabase.ts` — browser client singleton exporting
