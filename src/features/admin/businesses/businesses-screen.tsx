@@ -27,6 +27,7 @@ import {
 } from "@/features/admin/components/filter-chips";
 import { InitialsAvatar } from "@/features/admin/components/initials-avatar";
 import { SearchInput } from "@/features/admin/components/search-input";
+import { TableSkeleton } from "@/features/admin/components/table-skeleton";
 import { formatRelativeTime, ownerLabel } from "@/features/admin/lib/format";
 import {
   StatusChip,
@@ -56,13 +57,14 @@ export function BusinessesScreen() {
   const [search, setSearch] = useState("");
 
   const { data: statusCounts } = useAdminStatusCounts();
-  const { data: businesses } = useAdminBusinesses(
+  const { data: businesses, isLoading: businessesLoading } = useAdminBusinesses(
     filter === "deleted" ? undefined : { status: filter },
     { enabled: filter !== "deleted" },
   );
-  const { data: deleted } = useAdminDeletedBusinesses({
-    enabled: filter === "deleted",
-  });
+  const { data: deleted, isLoading: deletedLoading } =
+    useAdminDeletedBusinesses({
+      enabled: filter === "deleted",
+    });
   const restoreEntity = useAdminRestoreEntity();
 
   const chips: FilterChipOption<BusinessFilter>[] = [
@@ -127,7 +129,9 @@ export function BusinessesScreen() {
 
       <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
         {filter === "deleted" ? (
-          deletedRows.length === 0 ? (
+          deletedLoading ? (
+            <TableSkeleton />
+          ) : deletedRows.length === 0 ? (
             <EmptyState
               caption="Soft-deleted businesses wait here for 15 days before the purge."
               icon={Store}
@@ -197,6 +201,8 @@ export function BusinessesScreen() {
               </TableBody>
             </Table>
           )
+        ) : businessesLoading ? (
+          <TableSkeleton />
         ) : rows.length === 0 ? (
           <EmptyState
             caption={

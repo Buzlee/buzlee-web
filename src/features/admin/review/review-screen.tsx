@@ -1,11 +1,22 @@
 "use client";
 
-import { CheckCircle2, ChevronRight, ImageIcon } from "lucide-react";
+import {
+  CheckCircle2,
+  ChevronRight,
+  ImageIcon,
+  MoreHorizontal,
+} from "lucide-react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { AdminBusinessSummary } from "@/entities/admin";
 import {
   claimDomainMatch,
@@ -14,19 +25,31 @@ import {
   useAdminBusiness,
   useAdminBusinesses,
   useAdminRejectBusiness,
+  useSendBusinessClaimInvite,
 } from "@/entities/admin";
 import { useBusinessClaims } from "@/entities/business-claim";
 import { DomainPill } from "@/features/admin/components/domain-pill";
 import { EmptyState } from "@/features/admin/components/empty-state";
 import { InitialsAvatar } from "@/features/admin/components/initials-avatar";
+import { TableSkeleton } from "@/features/admin/components/table-skeleton";
+import { DeleteDialog } from "@/features/admin/dialogs/delete-dialog";
 import { RejectDialog } from "@/features/admin/dialogs/reject-dialog";
 import { formatRelativeTime, ownerLabel } from "@/features/admin/lib/format";
+import { useReviewShortcuts } from "@/features/admin/review/use-review-shortcuts";
 import { PageHeader } from "@/features/admin/shell/page-header";
 import { StatusChip } from "@/features/admin/shell/status-chip";
 import { cn } from "@/lib/utils";
 
 function reviewUrl(id: string | null): string {
   return id ? `/admin/businesses/review?id=${id}` : "/admin/businesses/review";
+}
+
+function Kbd({ children }: { children: React.ReactNode }) {
+  return (
+    <kbd className="rounded border border-border bg-secondary px-1.5 py-0.5 font-sans text-[10px] font-semibold text-secondary-foreground">
+      {children}
+    </kbd>
+  );
 }
 
 function FactRow({ label, value }: { label: string; value: React.ReactNode }) {
@@ -94,6 +117,7 @@ export function ReviewScreen() {
   const urlId = searchParams.get("id");
   const [selectedId, setSelectedId] = useState<string | null>(urlId);
   const [rejectOpen, setRejectOpen] = useState(false);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
   const { data: pendingBusinesses } = useAdminBusinesses({
     status: "pending",
@@ -112,6 +136,7 @@ export function ReviewScreen() {
 
   const approveBusiness = useAdminApproveBusiness();
   const rejectBusiness = useAdminRejectBusiness();
+  const sendClaimInvite = useSendBusinessClaimInvite();
 
   // Follow browser navigation (back/forward) into local state.
   useEffect(() => {
@@ -166,6 +191,35 @@ export function ReviewScreen() {
     );
   }
 
+  function moveSelection(delta: number) {
+    const list = pendingList ?? [];
+    if (list.length === 0) return;
+    const index = list.findIndex((b) => b.id === selectedId);
+    const nextIndex =
+      index === -1 ? 0 : Math.min(list.length - 1, Math.max(0, index + delta));
+    const next = list[nextIndex];
+    if (next && next.id !== selectedId) select(next.id);
+  }
+
+  useReviewShortcuts(Boolean(pendingList?.length), {
+    onPrev: () => moveSelection(-1),
+    onNext: () => moveSelection(1),
+    onApprove: () => {
+      if (business?.status === "pending") handleApprove();
+    },
+    onReject: () => {
+      if (business?.status === "pending") setRejectOpen(true);
+    },
+  });
+
+  function handleSendClaimInvite() {
+    if (!business || sendClaimInvite.isPending) return;
+    sendClaimInvite.mutate(business.id, {
+      onSuccess: () => toast.success(`Claim invite sent to ${business.email}`),
+      onError: (error) => toast.error(`Invite failed: ${error.message}`),
+    });
+  }
+
   const position = selectedId
     ? (pendingList?.findIndex((b) => b.id === selectedId) ?? -1)
     : -1;
@@ -174,11 +228,48 @@ export function ReviewScreen() {
     <div className="flex h-svh flex-col">
       <PageHeader
         actions={
-          position >= 0 && pendingList ? (
-            <span className="text-sm whitespace-nowrap text-muted-foreground tabular-nums">
-              {position + 1} of {pendingList.length}
+          <>
+            <span className="hidden items-center gap-1.5 text-xs whitespace-nowrap text-muted-foreground xl:flex">
+              <Kbd>↑↓</Kbd> Navigate · <Kbd>A</Kbd> Approve · <Kbd>R</Kbd>{" "}
+              Reject
             </span>
-          ) : undefined
+            {position >= 0 && pendingList ? (
+              <span className="text-sm whitespace-nowrap text-muted-foreground tabular-nums">
+                {position + 1} of {pendingList.length}
+              </span>
+            ) : null}
+            {business ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    aria-label="Business actions"
+                    size="icon-sm"
+                    type="button"
+                    variant="ghost"
+                  >
+                    <MoreHorizontal />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem disabled>Edit details</DropdownMenuItem>
+                  {!business.user_id && business.email ? (
+                    <DropdownMenuItem
+                      disabled={sendClaimInvite.isPending}
+                      onSelect={handleSendClaimInvite}
+                    >
+                      Send claim invite
+                    </DropdownMenuItem>
+                  ) : null}
+                  <DropdownMenuItem
+                    onSelect={() => setDeleteOpen(true)}
+                    variant="destructive"
+                  >
+                    Delete business…
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
+          </>
         }
         title={
           <span className="flex items-center gap-2 truncate">
@@ -208,7 +299,9 @@ export function ReviewScreen() {
             </h2>
           </div>
           <div className="min-h-0 flex-1 overflow-y-auto">
-            {pendingList && pendingList.length === 0 ? (
+            {!pendingList ? (
+              <TableSkeleton avatar rows={6} />
+            ) : pendingList.length === 0 ? (
               <EmptyState
                 icon={CheckCircle2}
                 iconClassName="bg-[hsl(var(--action-checked-in-soft))] text-[hsl(var(--action-checked-in))]"
@@ -388,6 +481,16 @@ export function ReviewScreen() {
         </section>
       </div>
 
+      {business ? (
+        <DeleteDialog
+          entity="business"
+          entityId={business.id}
+          name={business.name}
+          onDeleted={() => advanceAfterDecision(business.id)}
+          onOpenChange={setDeleteOpen}
+          open={deleteOpen}
+        />
+      ) : null}
       <RejectDialog
         ctaLabel="Reject & notify owner"
         onConfirm={handleReject}

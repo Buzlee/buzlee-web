@@ -1,9 +1,15 @@
 "use client";
 
-import { Copy, Users } from "lucide-react";
+import { Copy, MoreHorizontal, Users } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
   Table,
   TableBody,
@@ -17,6 +23,8 @@ import { useAdminResidents } from "@/entities/admin";
 import { EmptyState } from "@/features/admin/components/empty-state";
 import { InitialsAvatar } from "@/features/admin/components/initials-avatar";
 import { SearchInput } from "@/features/admin/components/search-input";
+import { TableSkeleton } from "@/features/admin/components/table-skeleton";
+import { DeleteDialog } from "@/features/admin/dialogs/delete-dialog";
 import { formatLongDate } from "@/features/admin/lib/format";
 import { cn } from "@/lib/utils";
 
@@ -43,8 +51,9 @@ function PanelRow({ label, value }: { label: string; value: string }) {
 export function ResidentsScreen() {
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [deleteOpen, setDeleteOpen] = useState(false);
 
-  const { data: residents } = useAdminResidents();
+  const { data: residents, isLoading } = useAdminResidents();
 
   const rows = (residents ?? []).filter((resident) => {
     const q = search.trim().toLowerCase();
@@ -87,7 +96,9 @@ export function ResidentsScreen() {
         </div>
 
         <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-          {rows.length === 0 ? (
+          {isLoading ? (
+            <TableSkeleton />
+          ) : rows.length === 0 ? (
             <EmptyState
               caption={
                 search ? "No residents match your search." : "No residents yet."
@@ -190,7 +201,36 @@ export function ResidentsScreen() {
               <Copy />
               Copy email
             </Button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button
+                  aria-label="Resident actions"
+                  size="icon-sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  <MoreHorizontal />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start">
+                <DropdownMenuItem
+                  onSelect={() => setDeleteOpen(true)}
+                  variant="destructive"
+                >
+                  Delete resident…
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
+
+          <DeleteDialog
+            entity="resident"
+            entityId={selected.id}
+            name={residentName(selected)}
+            onDeleted={() => setSelectedId(null)}
+            onOpenChange={setDeleteOpen}
+            open={deleteOpen}
+          />
         </aside>
       ) : null}
     </div>

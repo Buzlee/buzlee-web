@@ -1,7 +1,16 @@
 "use client";
 
-import { CheckCircle2, ChevronRight } from "lucide-react";
+import { CheckCircle2, ChevronRight, MoreHorizontal } from "lucide-react";
 import Link from "next/link";
+import { useState } from "react";
+import { toast } from "sonner";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import type { AdminBusinessSummary } from "@/entities/admin";
 import {
   claimDomainMatch,
@@ -10,11 +19,31 @@ import {
   useAdminStatusCounts,
 } from "@/entities/admin";
 import type { BusinessClaimWithBusiness } from "@/entities/business-claim";
-import { useBusinessClaims } from "@/entities/business-claim";
+import {
+  useApproveBusinessClaim,
+  useBusinessClaims,
+  useRejectBusinessClaim,
+} from "@/entities/business-claim";
 import { DomainPill } from "@/features/admin/components/domain-pill";
 import { EmptyState } from "@/features/admin/components/empty-state";
 import { InitialsAvatar } from "@/features/admin/components/initials-avatar";
+import { TableSkeleton } from "@/features/admin/components/table-skeleton";
+import { ConfirmDialog } from "@/features/admin/dialogs/confirm-dialog";
+import { RejectDialog } from "@/features/admin/dialogs/reject-dialog";
 import { formatRelativeTime, ownerLabel } from "@/features/admin/lib/format";
+
+/** Quick-pick reasons for declining a business claim (web-only copy). */
+const CLAIM_DECLINE_REASONS = [
+  "Could not verify ownership",
+  "Business already claimed",
+  "Contact info does not match",
+  "Other",
+] as const;
+
+type ClaimAction = {
+  type: "approve" | "decline";
+  claim: BusinessClaimWithBusiness;
+};
 
 function reviewHref(businessId: string): string {
   return `/admin/businesses/review?id=${businessId}`;
@@ -78,7 +107,13 @@ function ApprovalRow({ business }: { business: AdminBusinessSummary }) {
   );
 }
 
-function ClaimRow({ claim }: { claim: BusinessClaimWithBusiness }) {
+function ClaimRow({
+  claim,
+  onAction,
+}: {
+  claim: BusinessClaimWithBusiness;
+  onAction: (action: ClaimAction) => void;
+}) {
   const match = claimDomainMatch({
     claimEmail: claim.contact_email,
     businessEmail: claim.business?.email ?? null,
@@ -107,6 +142,31 @@ function ClaimRow({ claim }: { claim: BusinessClaimWithBusiness }) {
         {formatRelativeTime(claim.created_at)}
       </span>
       <ReviewButton href={reviewHref(claim.business_id)} />
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            aria-label={`Actions for claim by ${claim.contact_name ?? claim.contact_email ?? "claimant"}`}
+            size="icon-sm"
+            type="button"
+            variant="ghost"
+          >
+            <MoreHorizontal />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem
+            onSelect={() => onAction({ type: "approve", claim })}
+          >
+            Approve claim…
+          </DropdownMenuItem>
+          <DropdownMenuItem
+            onSelect={() => onAction({ type: "decline", claim })}
+            variant="destructive"
+          >
+            Decline claim…
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
     </li>
   );
 }
@@ -123,6 +183,9 @@ function StatBlock({ value, label }: { value: string; label: string }) {
 }
 
 export function InboxScreen() {
+  const [claimAction, setClaimAction] = useState<ClaimAction | null>(null);
+  const approveClaim = useApproveBusinessClaim();
+  const rejectClaim = useRejectBusinessClaim();
   const { data: statusCounts } = useAdminStatusCounts();
   const { data: pendingBusinesses } = useAdminBusinesses({ status: "pending" });
   const { data: pendingClaims } = useBusinessClaims("pending");
@@ -135,6 +198,35 @@ export function InboxScreen() {
   const totalPending = approvals.length + claims.length;
   const loading =
     pendingBusinesses === undefined || pendingClaims === undefined;
+
+  function handleApproveClaim() {
+    const action = claimAction;
+    if (!action || approveClaim.isPending) return;
+    approveClaim.mutate(action.claim.id, {
+      onSuccess: () => {
+        toast.success(
+          `Approved claim — ${action.claim.business?.name ?? "business"} now has an owner`,
+        );
+        setClaimAction(null);
+      },
+      onError: (error) => toast.error(`Approve failed: ${error.message}`),
+    });
+  }
+
+  function handleDeclineClaim(reason: string) {
+    const action = claimAction;
+    if (!action || rejectClaim.isPending) return;
+    rejectClaim.mutate(
+      { claimId: action.claim.id, reason },
+      {
+        onSuccess: () => {
+          toast.success("Claim declined");
+          setClaimAction(null);
+        },
+        onError: (error) => toast.error(`Decline failed: ${error.message}`),
+      },
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6 p-6">
@@ -170,7 +262,11 @@ export function InboxScreen() {
         </div>
       </div>
 
-      {!loading && totalPending === 0 ? (
+      {loading ? (
+        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
+          <TableSkeleton rows={5} />
+        </div>
+      ) : totalPending === 0 ? (
         <div className="rounded-xl border border-border bg-card shadow-sm">
           <EmptyState
             caption="No pending businesses or claim requests right now."
@@ -194,13 +290,45 @@ export function InboxScreen() {
             <SectionCard count={claims.length} title="Claim requests">
               <ul className="divide-y divide-border">
                 {claims.map((claim) => (
-                  <ClaimRow claim={claim} key={claim.id} />
+                  <ClaimRow
+                    claim={claim}
+                    key={claim.id}
+                    onAction={setClaimAction}
+                  />
                 ))}
               </ul>
             </SectionCard>
           ) : null}
         </>
       )}
+
+      <ConfirmDialog
+        ctaLabel="Approve claim"
+        description={
+          claimAction
+            ? `Assigns ownership of ${claimAction.claim.business?.name ?? "this business"} to ${claimAction.claim.contact_name ?? claimAction.claim.contact_email ?? "the claimant"} and notifies them by email.`
+            : undefined
+        }
+        onConfirm={handleApproveClaim}
+        onOpenChange={(open) => {
+          if (!open) setClaimAction(null);
+        }}
+        open={claimAction?.type === "approve"}
+        pending={approveClaim.isPending}
+        title={`Approve claim for ${claimAction?.claim.business?.name ?? "business"}?`}
+      />
+      <RejectDialog
+        ctaLabel="Decline claim"
+        description="The claimant keeps access to nothing; the business stays unclaimed."
+        onConfirm={handleDeclineClaim}
+        onOpenChange={(open) => {
+          if (!open) setClaimAction(null);
+        }}
+        open={claimAction?.type === "decline"}
+        pending={rejectClaim.isPending}
+        reasons={CLAIM_DECLINE_REASONS}
+        title={`Decline claim for ${claimAction?.claim.business?.name ?? "business"}?`}
+      />
     </div>
   );
 }

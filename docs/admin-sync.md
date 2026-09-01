@@ -41,6 +41,7 @@ provenance header added.
 | `src/entities/admin/api/admin-queries.ts` | same | verbatim |
 | `src/entities/admin/api/use-admin.ts` | same | see “Web adaptations” |
 | `src/entities/admin/model/types.ts` | same | verbatim |
+| `src/entities/admin/model/moderation.ts` | same | verbatim; REJECT_REASONS, FLYER_TAKEDOWN_REASONS, DELETE_RETENTION_DAYS, purge helpers |
 | `src/entities/admin/lib/send-business-status-email.ts` | same | verbatim |
 | `src/entities/admin/lib/send-business-claim-invite.ts` | same | verbatim; extra dependency of use-admin.ts |
 | `src/entities/business/model/types.ts` | same | verbatim (types only) |
@@ -98,6 +99,10 @@ model/types.ts and used for the sidebar nav counts.
   hooks over the ported claim queries (web-only).
 - `src/entities/admin/lib/domain-match.ts` — pure claim-email vs
   business-domain comparison helpers (web-only).
+- Claim-decline quick-pick reasons are web-local copy in
+  `src/features/admin/inbox/inbox-screen.tsx` (`CLAIM_DECLINE_REASONS`) —
+  buzlee-app has no equivalent constant yet; move it into moderation.ts in
+  both repos if the app grows the same flow.
 
 ## RPC / edge-function contract
 

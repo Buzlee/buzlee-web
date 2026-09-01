@@ -32,6 +32,7 @@ import {
   FilterChips,
 } from "@/features/admin/components/filter-chips";
 import { SearchInput } from "@/features/admin/components/search-input";
+import { TableSkeleton } from "@/features/admin/components/table-skeleton";
 import { RejectDialog } from "@/features/admin/dialogs/reject-dialog";
 import {
   formatRelativeTime,
@@ -108,6 +109,8 @@ export function FlyersScreen() {
           ? takenDownFlyers
           : expiredFlyers;
 
+  const loading = source === undefined;
+
   const rows = (source ?? []).filter((flyer) => {
     const q = search.trim().toLowerCase();
     if (!q) return true;
@@ -144,7 +147,9 @@ export function FlyersScreen() {
       </div>
 
       <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-        {rows.length === 0 ? (
+        {loading ? (
+          <TableSkeleton />
+        ) : rows.length === 0 ? (
           <EmptyState
             caption={
               search
