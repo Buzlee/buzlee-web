@@ -27,6 +27,7 @@ import {
   useAdminRejectBusiness,
   useSendBusinessClaimInvite,
 } from "@/entities/admin";
+import type { BusinessStatus } from "@/entities/business/model/types";
 import { useBusinessClaims } from "@/entities/business-claim";
 import { DomainPill } from "@/features/admin/components/domain-pill";
 import { EmptyState } from "@/features/admin/components/empty-state";
@@ -39,6 +40,12 @@ import { useReviewShortcuts } from "@/features/admin/review/use-review-shortcuts
 import { PageHeader } from "@/features/admin/shell/page-header";
 import { StatusChip } from "@/features/admin/shell/status-chip";
 import { cn } from "@/lib/utils";
+
+const STATUS_CRUMB: Record<BusinessStatus, string> = {
+  pending: "Pending",
+  approved: "Approved",
+  rejected: "Rejected",
+};
 
 function reviewUrl(id: string | null): string {
   return id ? `/admin/businesses/review?id=${id}` : "/admin/businesses/review";
@@ -279,10 +286,12 @@ export function ReviewScreen() {
             >
               Businesses
             </Link>
-            <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
-            <span className="text-muted-foreground">Pending</span>
             {business ? (
               <>
+                <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
+                <span className="text-muted-foreground">
+                  {STATUS_CRUMB[business.status]}
+                </span>
                 <ChevronRight className="size-4 shrink-0 text-muted-foreground" />
                 <span className="truncate">{business.name}</span>
               </>
