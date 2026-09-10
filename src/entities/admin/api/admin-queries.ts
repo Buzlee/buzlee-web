@@ -1,7 +1,7 @@
 // PORTED FROM buzlee-app/src/entities/admin/api/admin-queries.ts — keep in sync; see docs/admin-sync.md
 
 import type { Business, SocialLinks } from "@/entities/business/model/types";
-import type { Flyer } from "@/entities/flyer/model/types";
+import type { Flyer, FlyerEvent } from "@/entities/flyer/model/types";
 import { supabase } from "@/shared/lib/supabase";
 import { sendBusinessStatusEmail } from "../lib/send-business-status-email";
 import type {
@@ -168,6 +168,79 @@ export async function fetchAdminBusinesses(
 }
 
 /**
+ * Columns + relations every admin flyer read embeds. `flyer_events(*)` is the
+ * per-event lineup (multi-event flyers); the flat event_* columns are the
+ * DB-derived schedule summary kept for sorting and legacy rows.
+ */
+const ADMIN_FLYER_SELECT = `
+  id,
+  business_id,
+  title,
+  description,
+  media_url,
+  media_type,
+  flyer_type,
+  event_date,
+  event_time,
+  event_end_date,
+  expires_at,
+  location_address,
+  external_link,
+  status,
+  created_at,
+  updated_at,
+  business:businesses(name, logo_url),
+  category:flyer_categories(id, name),
+  town:towns(id, name),
+  flyer_events(*)
+`;
+
+/**
+ * Embedded `flyer_events(*)` come back unordered; order by sort_order then
+ * start so "first event" and the lineup match what the business authored.
+ * Duplicated from entities/flyer/api (not ported to buzlee-web) so this file
+ * stays a verbatim copy across repos.
+ */
+function sortAdminFlyerEvents(
+  rows: FlyerEvent[] | null | undefined,
+): FlyerEvent[] {
+  if (!rows || rows.length === 0) return [];
+  return [...rows].sort((a, b) => {
+    if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order;
+    return a.starts_at.localeCompare(b.starts_at);
+  });
+}
+
+/** Flatten one joined flyers row into the admin summary shape. */
+function mapAdminFlyerRow(item: any): AdminFlyerSummary {
+  return {
+    id: item.id,
+    business_id: item.business_id,
+    title: item.title,
+    description: item.description,
+    media_url: item.media_url,
+    media_type: item.media_type,
+    flyer_type: item.flyer_type ?? "single",
+    event_date: item.event_date,
+    event_time: item.event_time,
+    event_end_date: item.event_end_date,
+    expires_at: item.expires_at,
+    location_address: item.location_address,
+    external_link: item.external_link,
+    status: item.status,
+    created_at: item.created_at,
+    updated_at: item.updated_at,
+    business_name: item.business?.name ?? null,
+    business_logo: item.business?.logo_url ?? null,
+    category_id: item.category?.id ?? null,
+    category_name: item.category?.name ?? null,
+    town_id: item.town?.id ?? null,
+    town_name: item.town?.name ?? null,
+    events: sortAdminFlyerEvents(item.flyer_events),
+  };
+}
+
+/**
  * Fetch flyers for admin dashboard with filters
  * Uses the standard flyers table with joins for related data
  */
@@ -176,28 +249,7 @@ export async function fetchAdminFlyers(
 ): Promise<AdminFlyerSummary[]> {
   let query = supabase
     .from("flyers")
-    .select(
-      `
-      id,
-      business_id,
-      title,
-      description,
-      media_url,
-      media_type,
-      event_date,
-      event_time,
-      event_end_date,
-      expires_at,
-      location_address,
-      external_link,
-      status,
-      created_at,
-      updated_at,
-      business:businesses(name, logo_url),
-      category:flyer_categories(id, name),
-      town:towns(id, name)
-    `,
-    )
+    .select(ADMIN_FLYER_SELECT)
     .order("created_at", { ascending: false });
 
   if (filters?.status) {
@@ -224,30 +276,7 @@ export async function fetchAdminFlyers(
 
   if (error) throw error;
 
-  // Transform joined data to flat structure
-  return data.map((item: any) => ({
-    id: item.id,
-    business_id: item.business_id,
-    title: item.title,
-    description: item.description,
-    media_url: item.media_url,
-    media_type: item.media_type,
-    event_date: item.event_date,
-    event_time: item.event_time,
-    event_end_date: item.event_end_date,
-    expires_at: item.expires_at,
-    location_address: item.location_address,
-    external_link: item.external_link,
-    status: item.status,
-    created_at: item.created_at,
-    updated_at: item.updated_at,
-    business_name: item.business?.name ?? null,
-    business_logo: item.business?.logo_url ?? null,
-    category_id: item.category?.id ?? null,
-    category_name: item.category?.name ?? null,
-    town_id: item.town?.id ?? null,
-    town_name: item.town?.name ?? null,
-  }));
+  return data.map(mapAdminFlyerRow);
 }
 
 /**
@@ -352,57 +381,13 @@ export async function fetchAdminFlyer(
 ): Promise<AdminFlyerSummary> {
   const { data, error } = await supabase
     .from("flyers")
-    .select(
-      `
-      id,
-      business_id,
-      title,
-      description,
-      media_url,
-      media_type,
-      event_date,
-      event_time,
-      event_end_date,
-      expires_at,
-      location_address,
-      external_link,
-      status,
-      created_at,
-      updated_at,
-      business:businesses(name, logo_url),
-      category:flyer_categories(id, name),
-      town:towns(id, name)
-    `,
-    )
+    .select(ADMIN_FLYER_SELECT)
     .eq("id", flyerId)
     .single();
 
   if (error) throw error;
 
-  const item = data as any;
-  return {
-    id: item.id,
-    business_id: item.business_id,
-    title: item.title,
-    description: item.description,
-    media_url: item.media_url,
-    media_type: item.media_type,
-    event_date: item.event_date,
-    event_time: item.event_time,
-    event_end_date: item.event_end_date,
-    expires_at: item.expires_at,
-    location_address: item.location_address,
-    external_link: item.external_link,
-    status: item.status,
-    created_at: item.created_at,
-    updated_at: item.updated_at,
-    business_name: item.business?.name ?? null,
-    business_logo: item.business?.logo_url ?? null,
-    category_id: item.category?.id ?? null,
-    category_name: item.category?.name ?? null,
-    town_id: item.town?.id ?? null,
-    town_name: item.town?.name ?? null,
-  };
+  return mapAdminFlyerRow(data);
 }
 
 /**

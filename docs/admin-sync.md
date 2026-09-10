@@ -56,6 +56,12 @@ provenance header added.
 | `src/entities/admin/lib/send-business-claim-invite.ts` | same | verbatim; extra dependency of use-admin.ts |
 | `src/entities/business/model/types.ts` | same | verbatim (types only) |
 | `src/entities/flyer/model/types.ts` | same | verbatim (types only) |
+| `src/entities/flyer/lib/flyer-helper.ts` | same | verbatim; schedule/occurrence formatters |
+| `src/entities/flyer/lib/flyer-recurrence.ts` | same | verbatim |
+| `src/entities/flyer/lib/flyer-occurrences.ts` | same | verbatim |
+| `src/entities/flyer/lib/lineup.ts` | same | verbatim; horizon grouping for the lineup |
+| `src/entities/flyer/lib/index.ts` | same | web barrel — pure helpers only (no RN animations / notifications / age-restriction) |
+| `src/shared/lib/date-local.ts` | same | verbatim; naive-local date helpers the flyer lib depends on |
 | `src/entities/catalog/model/types.ts` | same | verbatim; type dependency of business types |
 | `src/entities/business-claim/api/business-claim-queries.ts` | same | verbatim |
 | `src/entities/business-claim/model/types.ts` | same | verbatim |
@@ -83,6 +89,11 @@ nullability; buzlee-app's originals do not compile under it unchanged:
   instead of `?? null` (omitted args hit the same SQL defaults).
 - All ported files are reformatted by Biome (double quotes, `import type`)
   — re-sync by re-copying from buzlee-app and re-running `pnpm format`.
+
+Note (2026-09-10): `AdminFlyerSummary` now carries `flyer_type` and the
+ordered `events: FlyerEvent[]` lineup (`ADMIN_FLYER_SELECT` embeds
+`flyer_events(*)`); `admin-queries.ts` / `model/types.ts` were re-copied from
+buzlee-app and the two `// Web fix:` blocks reapplied.
 
 Note: buzlee-app has since grown `fetchAdminStatusCounts` /
 `useAdminStatusCounts` / `AdminStatusCounts` (all status rows from the two
@@ -137,6 +148,12 @@ model/types.ts and used for the sidebar nav counts.
   `components/image-field.tsx`. Edit sends a diff-only patch; create posts
   via the ported `createUnclaimedBusiness`, then uploads staged media and
   patches URLs — same sequence as the app's create-business screen.
+- `src/features/admin/flyers/flyer-review-screen.tsx` — web flyer detail
+  (`/admin/flyers/review?id=`): hero image, status, business link, lineup for
+  multi-event flyers, facts, take-down bar. Mirrors mobile
+  `app/(admin-detail)/flyer-review/[id]` minus "View on map" (map not ported
+  yet — roadmap item 4). `flyer-lineup.tsx` is the web port of
+  `features/admin-flyer-review/ui/AdminFlyerLineup`.
 - `src/features/admin/claims/claims-screen.tsx` — web claim history
   (Pending / Approved / Declined chips, search, side panel with domain
   signal, decision date and decline reason; approve/decline for pending).

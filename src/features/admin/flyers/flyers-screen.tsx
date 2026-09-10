@@ -1,6 +1,7 @@
 "use client";
 
 import { FileText, MoreHorizontal, Newspaper } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -42,6 +43,10 @@ import {
 type FlyerFilter = "live" | "last24h" | "takenDown" | "expired";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
+
+function reviewUrl(id: string): string {
+  return `/admin/flyers/review?id=${id}`;
+}
 
 function FlyerThumb({ flyer }: { flyer: AdminFlyerSummary }) {
   if (flyer.media_type === "image" && flyer.media_url) {
@@ -174,14 +179,22 @@ export function FlyersScreen() {
             </TableHeader>
             <TableBody>
               {rows.map((flyer) => (
-                <TableRow key={flyer.id}>
+                <TableRow
+                  className="cursor-pointer"
+                  key={flyer.id}
+                  onClick={() => router.push(reviewUrl(flyer.id))}
+                >
                   <TableCell>
                     <FlyerThumb flyer={flyer} />
                   </TableCell>
                   <TableCell className="max-w-72">
-                    <span className="block truncate font-semibold text-foreground">
+                    <Link
+                      className="block truncate font-semibold text-foreground"
+                      href={reviewUrl(flyer.id)}
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {flyer.title}
-                    </span>
+                    </Link>
                   </TableCell>
                   <TableCell className="text-muted-foreground">
                     {flyer.business_name ?? "—"}
@@ -195,7 +208,7 @@ export function FlyersScreen() {
                   <TableCell className="whitespace-nowrap text-muted-foreground">
                     {formatRelativeTime(flyer.created_at)}
                   </TableCell>
-                  <TableCell>
+                  <TableCell onClick={(e) => e.stopPropagation()}>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button
@@ -208,6 +221,11 @@ export function FlyersScreen() {
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
+                        <DropdownMenuItem
+                          onSelect={() => router.push(reviewUrl(flyer.id))}
+                        >
+                          View flyer
+                        </DropdownMenuItem>
                         {flyer.status === "live" ? (
                           <DropdownMenuItem
                             onSelect={() => setTakedownTarget(flyer)}

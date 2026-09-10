@@ -1,6 +1,10 @@
 // PORTED FROM buzlee-app/src/entities/admin/model/types.ts — keep in sync; see docs/admin-sync.md
 import type { Business, BusinessStatus } from "@/entities/business/model/types";
-import type { FlyerStatus } from "@/entities/flyer/model/types";
+import type {
+  FlyerEvent,
+  FlyerStatus,
+  FlyerType,
+} from "@/entities/flyer/model/types";
 
 /**
  * Admin-specific filter types for querying pending items
@@ -57,6 +61,12 @@ export type AdminFlyerSummary = {
   description: string | null;
   media_url: string | null;
   media_type: string | null;
+  /** 'multi' = a lineup of several events; 'single' = exactly one. */
+  flyer_type: FlyerType;
+  /**
+   * Schedule summary columns derived by the DB from `events` (earliest start /
+   * latest end). Keep for sorting and legacy rows; render from `events`.
+   */
   event_date: string;
   event_time: string | null;
   event_end_date: string | null;
@@ -72,6 +82,8 @@ export type AdminFlyerSummary = {
   category_name: string | null;
   town_id: string | null;
   town_name: string | null;
+  /** Ordered by sort_order, then starts_at. Empty only for legacy rows without child events. */
+  events: FlyerEvent[];
 };
 
 /**
