@@ -36,6 +36,7 @@ import { TableSkeleton } from "@/features/admin/components/table-skeleton";
 import { DeleteDialog } from "@/features/admin/dialogs/delete-dialog";
 import { RejectDialog } from "@/features/admin/dialogs/reject-dialog";
 import { formatRelativeTime, ownerLabel } from "@/features/admin/lib/format";
+import { EditBusinessSheet } from "@/features/admin/review/edit-business-sheet";
 import { useReviewShortcuts } from "@/features/admin/review/use-review-shortcuts";
 import { PageHeader } from "@/features/admin/shell/page-header";
 import { StatusChip } from "@/features/admin/shell/status-chip";
@@ -125,6 +126,7 @@ export function ReviewScreen() {
   const [selectedId, setSelectedId] = useState<string | null>(urlId);
   const [rejectOpen, setRejectOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
 
   const { data: pendingBusinesses } = useAdminBusinesses({
     status: "pending",
@@ -258,7 +260,9 @@ export function ReviewScreen() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuItem disabled>Edit details</DropdownMenuItem>
+                  <DropdownMenuItem onSelect={() => setEditOpen(true)}>
+                    Edit details
+                  </DropdownMenuItem>
                   {!business.user_id && business.email ? (
                     <DropdownMenuItem
                       disabled={sendClaimInvite.isPending}
@@ -493,6 +497,13 @@ export function ReviewScreen() {
         </section>
       </div>
 
+      {business ? (
+        <EditBusinessSheet
+          businessId={business.id}
+          onOpenChange={setEditOpen}
+          open={editOpen}
+        />
+      ) : null}
       {business ? (
         <DeleteDialog
           entity="business"

@@ -50,6 +50,9 @@ provenance header added.
 | `src/entities/business-claim/api/business-claim-queries.ts` | same | verbatim |
 | `src/entities/business-claim/model/types.ts` | same | verbatim |
 | `src/entities/business-claim/lib/send-claim-approved-email.ts` | same | verbatim |
+| `src/entities/catalog/api/catalog-queries.ts` | same | verbatim; categories/towns for the edit form |
+| `src/entities/catalog/api/use-catalog.ts` | same | verbatim |
+| `src/entities/catalog/api/index.ts`, `src/entities/catalog/index.ts` | same | verbatim barrels |
 
 Deliberately **not** ported: `entities/business-claim/api/use-business-claim.ts`
 (RN/owner-side hooks) — replaced by the web-only
@@ -93,12 +96,23 @@ model/types.ts and used for the sidebar nav counts.
   `src/entities/flyer/api/use-flyer.ts` — query-key factories only
   (copied from the buzlee-app originals; the hooks in those files are
   RN-specific and trimmed).
-- `src/entities/business/api/business-queries.ts` — `updateBusiness`
-  only (the full buzlee-app file uses expo-file-system for uploads).
+- `src/entities/business/api/business-queries.ts` — `fetchBusiness` +
+  `updateBusiness` only (the full buzlee-app file uses expo-file-system
+  for uploads). `useBusiness` is ported alongside the key factory in
+  `use-business.ts`; the edit form needs the full row because
+  `AdminBusinessSummary` omits `social_links` / `show_email`.
 - `src/entities/business-claim/api/use-admin-claims.ts` — React Query
   hooks over the ported claim queries (web-only).
 - `src/entities/admin/lib/domain-match.ts` — pure claim-email vs
-  business-domain comparison helpers (web-only).
+  business-domain comparison helpers. buzlee-app has since grown the same
+  helpers (plus tests) at `entities/business-claim/lib/domain-match.ts`;
+  same exports, different path — re-home if the two ever diverge.
+- `src/features/admin/review/edit-business-sheet.tsx` — web edit form
+  (web-only UI over the ported `updateBusiness`). Sends a diff-only patch.
+  Deliberately narrower than the mobile edit screen: no logo/cover upload
+  and no geocoded address picker — editing `address` on web does **not**
+  touch the `location` JSON (map pin), so re-pick the address in the app
+  when a business moves.
 - Claim-decline quick-pick reasons are web-local copy in
   `src/features/admin/inbox/inbox-screen.tsx` (`CLAIM_DECLINE_REASONS`) —
   buzlee-app has no equivalent constant yet; move it into moderation.ts in
