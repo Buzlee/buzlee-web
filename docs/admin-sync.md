@@ -43,6 +43,16 @@ provenance header added.
 | `src/entities/admin/model/types.ts` | same | verbatim |
 | `src/entities/admin/model/moderation.ts` | same | verbatim; REJECT_REASONS, FLYER_TAKEDOWN_REASONS, CLAIM_DECLINE_REASONS, DELETE_RETENTION_DAYS, purge helpers |
 | `src/entities/admin/lib/send-business-status-email.ts` | same | verbatim |
+| `src/entities/location/model/types.ts` | same | verbatim |
+| `src/entities/location/model/address-search.ts` | same | verbatim |
+| `src/entities/location/model/address-field-copy.ts` | same | verbatim |
+| `src/entities/location/api/geocoding-service.ts` | same | see “Web adaptations” (`supabase.functions.invoke` instead of `fetch` + `Env`) |
+| `src/entities/location/api/use-location.ts` | same | verbatim |
+| `src/entities/location/lib/formatted-address.ts` | same | verbatim |
+| `src/entities/location/lib/geocoded-location-from-stored.ts` | same | verbatim |
+| `src/entities/location/index.ts` | same | web barrel — omits RN UI, town-matching, zod location-schema |
+| `src/entities/business/lib/social-links.ts` | same | verbatim |
+| `src/entities/business/lib/business-address-update.ts` | same | verbatim |
 | `src/entities/admin/lib/send-business-claim-invite.ts` | same | verbatim; extra dependency of use-admin.ts |
 | `src/entities/business/model/types.ts` | same | verbatim (types only) |
 | `src/entities/flyer/model/types.ts` | same | verbatim (types only) |
@@ -107,12 +117,26 @@ model/types.ts and used for the sidebar nav counts.
   business-domain comparison helpers. buzlee-app has since grown the same
   helpers (plus tests) at `entities/business-claim/lib/domain-match.ts`;
   same exports, different path — re-home if the two ever diverge.
-- `src/features/admin/review/edit-business-sheet.tsx` — web edit form
-  (web-only UI over the ported `updateBusiness`). Sends a diff-only patch.
-  Deliberately narrower than the mobile edit screen: no logo/cover upload
-  and no geocoded address picker — editing `address` on web does **not**
-  touch the `location` JSON (map pin), so re-pick the address in the app
-  when a business moves.
+- `src/entities/business/api/business-queries.ts` — `uploadBusinessLogo`
+  / `uploadBusinessCoverPhoto` / `deleteBusinessAsset` take a `Blob`
+  (already centre-cropped + JPEG-encoded by
+  `features/admin/lib/image.ts`) instead of the app's `ImageAsset` +
+  expo-file-system. Bucket (`business-assets`), path
+  (`<id>/logo-<ts>.jpg`), content type and delete-after-upload match the
+  app. `cleanupOrphanedBusinessAssets` is not ported.
+- `src/entities/location/api/geocoding-service.ts` — calls the same
+  `geocode-autocomplete` edge function via `supabase.functions.invoke`
+  (browser session supplies apikey + bearer). `GeocodingError.status` is
+  read from `FunctionsHttpError.context.status`. Edge function already
+  sends `Access-Control-Allow-Origin: *`.
+- `src/features/admin/businesses/business-form.tsx` — shared field set
+  (listing, media, contact, geocoded address, town, social) used by
+  `create-business-screen.tsx` (`/admin/businesses/new`) and
+  `review/edit-business-sheet.tsx`. Address picker is
+  `components/address-field.tsx` (web AddressEntryField); media picker is
+  `components/image-field.tsx`. Edit sends a diff-only patch; create posts
+  via the ported `createUnclaimedBusiness`, then uploads staged media and
+  patches URLs — same sequence as the app's create-business screen.
 - `src/features/admin/claims/claims-screen.tsx` — web claim history
   (Pending / Approved / Declined chips, search, side panel with domain
   signal, decision date and decline reason; approve/decline for pending).
