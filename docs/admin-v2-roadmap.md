@@ -6,7 +6,7 @@ The admin redesign spans two repos, driven by the Paper Desktop file "Buzlee" (m
 
 ## Shipped
 
-**Web (this repo, branch `feat/admin-web-dashboard`)**
+**Web (this repo — on `dev` + `preview`; ship = commit on `dev`, push, fast-forward `preview`)**
 - Foundation: Supabase browser/server clients (`src/shared/lib/supabase.ts` is the port seam — same import path as buzlee-app), `src/proxy.ts` (matcher `/admin/:path*` only), `/admin/sign-in`, env kill-switch.
 - Shell: sidebar + header + status chips; auth gate in `admin/(dashboard)/layout.tsx` (`getUser()` + `profiles.role === 'admin'`; RLS `is_admin()` is the real enforcement; anon key only, no service role anywhere).
 - Data layer: `entities/admin/*` + claim queries ported from buzlee-app with provenance headers (see admin-sync.md for the file list and web-only deviations).
@@ -19,11 +19,14 @@ The admin redesign spans two repos, driven by the Paper Desktop file "Buzlee" (m
 - Create / edit flyer (2026-09-10): `/admin/flyers/new?business=` and `/admin/flyers/edit?id=` run the web port of the mobile flyer wizard (`features/admin/flyer-wizard`, model/lib ported verbatim; UI rebuilt with native date/time inputs, chips, a drag-and-drop artwork field, promise-based confirm dialog). Same 5 steps (basics → schedule/lineup → details → location → review), same validation, same `upsert_flyer_with_events` RPC + `flyer-media` uploads + `flyer_tags` + member notify + create-rollback as the app. Edit hub for live flyers: Save changes / Unpublish / Delete. Entry points: business review `⋯ → Create flyer` + a new **Flyers** panel (Create / View / Edit), flyer review header `Edit flyer`, flyers table `⋯ → Edit flyer`. Web deviations: no local draft autosave/resume (in-memory + `beforeunload` guard), no lineup month calendar (list only), no tag creation.
 - Claims (2026-09-10): sidebar `Claims` → `/admin/claims` (`features/admin/claims/claims-screen.tsx`) — Pending / Approved / Declined chips with counts, search, side panel (domain signal, contact facts, decision date, decline reason, approve/decline for pending). Inbox section headers now link "See all" to `/admin/businesses` and `/admin/claims`.
 - `CLAIM_DECLINE_REASONS` lifted into `entities/admin/model/moderation.ts` (both repos, same strings).
-- Vercel preview live: `https://buzlee-web-git-feat-admin-web-dashboard-buzlee.vercel.app/admin` (behind team SSO — be logged into Vercel).
+- Vercel builds: `https://buzlee-web-git-preview-buzlee.vercel.app/admin` (preview branch) and `https://buzlee-web-git-dev-buzlee.vercel.app/admin` (dev), both behind team SSO — be logged into Vercel. The old `feat/admin-web-dashboard` branch build is superseded.
 
 **Mobile (buzlee-app, on `dev` + `preview`)**
-- Full inbox-model redesign (`72fc268`) + routing fix for the `(admin-detail)` stack (`0638581`). OTA published to both channels.
-- Claim history (2026-09-10): `app/(admin-detail)/claims.tsx` (Pending / Approved / Declined chips, search, rows open `claim-review/[id]`; declined rows show the reason inline). Reached from More → Tools → "Claim history" and Inbox → Claim requests → "See all". Not yet OTA-published.
+- Full inbox-model redesign (`72fc268`) + routing fix for the `(admin-detail)` stack (`0638581`).
+- Multi-event lineups on the admin flyer screens (`bd545d6`).
+- Claim history (2026-09-10, `59b4dff`): `app/(admin-detail)/claims.tsx` (Pending / Approved / Declined chips, search, rows open `claim-review/[id]`; declined rows show the reason inline). Reached from More → Tools → "Claim history" and Inbox → Claim requests → "See all".
+- "Next up" inbox hero with session-only skip (`ba26ce7`).
+- All of the above are on `origin/dev` + `origin/preview` (head `ba26ce7`) and OTA-live: `.github/workflows/eas-update.yml` publishes on every push to `dev` (development channel) and `preview` (preview channel); the runs for `ba26ce7` on both branches succeeded 2026-09-10.
 
 ## Goal: full web ↔ mobile admin parity
 
@@ -33,7 +36,7 @@ Stated 2026-09-10: the web admin must do everything the mobile admin does. Mobil
 
 1. **Batch upload (web)** — mobile `features/admin-batch-upload` (CSV parse → `resolve-rows` → row edit → insert; remote media fetch). Port `lib/` + `model/` verbatim, build a web table UI. Sidebar TOOLS link currently disabled.
 2. **Map + discovery feed (web)** — mobile `discovery-map` / `discovery-feed` are read-only resident views (MapLibre + MapTiler, `features/discovery`, `features/filter`). Needs `MAPTILER_API_KEY` in Vercel (dev+preview) and a web map lib. Sidebar TOOLS link currently disabled. Once landed, add "View on map" to the flyer review bar (mobile parity) and a map preview to the wizard's Location step.
-3. **Live-data smoke test** on preview: approve → reject → soft delete → restore → claim approve/decline → flyer review (single + multi-event lineup, take-down) → create business with logo/cover + address → edit-details (replace/remove images, change address) → **create flyer (single, then multi with 2+ events; image + PDF artwork; cover photo; tags; age range; members-only) → edit flyer (replace artwork, remove cover, save changes on a live flyer, unpublish, delete)** → residents Export CSV → confirm map pin + images + the new flyers in the mobile app, and that `app.buzlee.com/admin` still 404s. Then OTA-publish the mobile claims screen to dev + preview.
+3. **Live-data smoke test** on preview: approve → reject → soft delete → restore → claim approve/decline → flyer review (single + multi-event lineup, take-down) → create business with logo/cover + address → edit-details (replace/remove images, change address) → **create flyer (single, then multi with 2+ events; image + PDF artwork; cover photo; tags; age range; members-only) → edit flyer (replace artwork, remove cover, save changes on a live flyer, unpublish, delete)** → residents Export CSV → confirm map pin + images + the new flyers in the mobile app, and that `app.buzlee.com/admin` still 404s.
 4. **Dev tools** — mobile `dev-tools` is development-build only; not a parity target.
 
 ## Invariants (do not break)
