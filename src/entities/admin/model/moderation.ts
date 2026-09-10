@@ -52,3 +52,11 @@ export const FLYER_TAKEDOWN_REASONS = [
   "Not from this business",
   "Other",
 ] as const;
+
+/** Quick-pick reasons for declining a business claim. */
+export const CLAIM_DECLINE_REASONS = [
+  "Could not verify ownership",
+  "Business already claimed",
+  "Contact info does not match",
+  "Other",
+] as const;

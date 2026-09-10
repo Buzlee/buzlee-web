@@ -13,18 +13,19 @@ The admin redesign spans two repos, driven by the Paper Desktop file "Buzlee" (m
 - Screens: Inbox (queues + domain-match pills), Businesses (chips/search/Deleted+Restore), business Review (master-detail, `?id=` deep link, auto-advance), Flyers, Residents (side panel).
 - Polish: reject/delete/confirm dialogs, keyboard shortcuts (↑↓/A/R), skeletons, toasts.
 - Edit business (2026-09-10): review screen `⋯ → Edit details` opens a side sheet (`features/admin/review/edit-business-sheet.tsx`) — name, category, about, email + show-email, phone, website, address, town, social links. Diff-only patch via `useAdminUpdateBusiness`. Catalog API (`entities/catalog/api`) and `fetchBusiness`/`useBusiness` ported from buzlee-app to support it. Not yet: logo/cover upload, geocoded address (map pin unchanged when address edited on web).
+- Claims (2026-09-10): sidebar `Claims` → `/admin/claims` (`features/admin/claims/claims-screen.tsx`) — Pending / Approved / Declined chips with counts, search, side panel (domain signal, contact facts, decision date, decline reason, approve/decline for pending). Inbox section headers now link "See all" to `/admin/businesses` and `/admin/claims`.
+- `CLAIM_DECLINE_REASONS` lifted into `entities/admin/model/moderation.ts` (both repos, same strings).
 - Vercel preview live: `https://buzlee-web-git-feat-admin-web-dashboard-buzlee.vercel.app/admin` (behind team SSO — be logged into Vercel).
 
 **Mobile (buzlee-app, on `dev` + `preview`)**
 - Full inbox-model redesign (`72fc268`) + routing fix for the `(admin-detail)` stack (`0638581`). OTA published to both channels.
+- Claim history (2026-09-10): `app/(admin-detail)/claims.tsx` (Pending / Approved / Declined chips, search, rows open `claim-review/[id]`; declined rows show the reason inline). Reached from More → Tools → "Claim history" and Inbox → Claim requests → "See all". Not yet OTA-published.
 
 ## Remaining work (priority order)
 
-1. **Claim history (web + mobile)** — the old mobile claims screen had a Pending/Approved/Rejected filter with rejection reasons; the new UI on both apps only surfaces pending claims. `useBusinessClaims(status)` / `use-admin-claims.ts` already support status filtering — only screens are missing.
-2. **Batch upload + map (web)** — sidebar TOOLS links have no web destination (mobile-only features today). Build, or mark as mobile-only.
-3. **Lift `CLAIM_DECLINE_REASONS`** into `entities/admin/model/moderation.ts` in both repos (currently duplicated inline in web `inbox-screen` and mobile `claim-review`).
-4. **Live-data smoke test** on preview: approve → reject → soft delete → restore → claim approve/decline, plus edit-details save, confirming each change appears in the mobile app (same Supabase project) and that `app.buzlee.com/admin` still 404s.
-5. **Edit form follow-ups (web)** — logo/cover upload (needs a web upload path to Supabase storage; the app uses expo-file-system), and a geocoded address picker so web edits also update `location` (map pin). Low priority: both are doable in the app today.
+1. **Batch upload + map (web)** — sidebar TOOLS links have no web destination (mobile-only features today). Build, or mark as mobile-only.
+2. **Live-data smoke test** on preview: approve → reject → soft delete → restore → claim approve/decline, plus edit-details save and the Claims history views (web `/admin/claims`, mobile More → Claim history), confirming each change appears in the mobile app (same Supabase project) and that `app.buzlee.com/admin` still 404s. Then OTA-publish the mobile claims screen to dev + preview.
+3. **Edit form follow-ups (web)** — logo/cover upload (needs a web upload path to Supabase storage; the app uses expo-file-system), and a geocoded address picker so web edits also update `location` (map pin). Low priority: both are doable in the app today.
 
 ## Invariants (do not break)
 

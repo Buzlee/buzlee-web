@@ -41,7 +41,7 @@ provenance header added.
 | `src/entities/admin/api/admin-queries.ts` | same | verbatim |
 | `src/entities/admin/api/use-admin.ts` | same | see “Web adaptations” |
 | `src/entities/admin/model/types.ts` | same | verbatim |
-| `src/entities/admin/model/moderation.ts` | same | verbatim; REJECT_REASONS, FLYER_TAKEDOWN_REASONS, DELETE_RETENTION_DAYS, purge helpers |
+| `src/entities/admin/model/moderation.ts` | same | verbatim; REJECT_REASONS, FLYER_TAKEDOWN_REASONS, CLAIM_DECLINE_REASONS, DELETE_RETENTION_DAYS, purge helpers |
 | `src/entities/admin/lib/send-business-status-email.ts` | same | verbatim |
 | `src/entities/admin/lib/send-business-claim-invite.ts` | same | verbatim; extra dependency of use-admin.ts |
 | `src/entities/business/model/types.ts` | same | verbatim (types only) |
@@ -113,10 +113,17 @@ model/types.ts and used for the sidebar nav counts.
   and no geocoded address picker — editing `address` on web does **not**
   touch the `location` JSON (map pin), so re-pick the address in the app
   when a business moves.
-- Claim-decline quick-pick reasons are web-local copy in
-  `src/features/admin/inbox/inbox-screen.tsx` (`CLAIM_DECLINE_REASONS`) —
-  buzlee-app has no equivalent constant yet; move it into moderation.ts in
-  both repos if the app grows the same flow.
+- `src/features/admin/claims/claims-screen.tsx` — web claim history
+  (Pending / Approved / Declined chips, search, side panel with domain
+  signal, decision date and decline reason; approve/decline for pending).
+  Fetches `useBusinessClaims()` (all statuses) once and filters client-side.
+  Mobile counterpart is `app/(admin-detail)/claims.tsx` (list only; tapping
+  a row opens `claim-review/[id]`) — both read the same columns
+  (`reviewed_at`, `rejection_reason`); no data-layer change was needed.
+- `CLAIM_DECLINE_REASONS` lives in `entities/admin/model/moderation.ts` in
+  both repos (lifted 2026-09-10 from web `inbox-screen` and mobile
+  `claim-review`). Keep the four strings identical across repos — the
+  reason text is what claimants receive by email.
 
 ## RPC / edge-function contract
 

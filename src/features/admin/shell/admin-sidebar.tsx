@@ -8,6 +8,7 @@ import {
   Newspaper,
   Store,
   Upload,
+  UserCheck,
   Users,
 } from "lucide-react";
 import Link from "next/link";
@@ -33,6 +34,7 @@ import { supabase } from "@/shared/lib/supabase";
 
 type NavCounts = {
   inbox?: number;
+  claims?: number;
   businesses?: number;
   flyers?: number;
   residents?: number;
@@ -40,8 +42,9 @@ type NavCounts = {
 
 /**
  * Live nav counts. Inbox = pending businesses + pending claims (amber pill);
- * the rest are muted totals. Rendering degrades gracefully while loading —
- * items simply show no count until the queries resolve.
+ * Claims = pending claims; the rest are muted totals. Rendering degrades
+ * gracefully while loading — items simply show no count until the queries
+ * resolve.
  */
 function useAdminNavCounts(): NavCounts {
   const { data: statusCounts } = useAdminStatusCounts();
@@ -55,6 +58,7 @@ function useAdminNavCounts(): NavCounts {
       pendingBusinesses === undefined && pendingClaims === undefined
         ? undefined
         : (pendingBusinesses ?? 0) + (pendingClaims ?? 0),
+    claims: pendingClaims,
     businesses: statusCounts
       ? Object.values(statusCounts.businesses).reduce((sum, n) => sum + n, 0)
       : undefined,
@@ -70,6 +74,12 @@ const NAV_ITEMS = [
     href: "/admin/businesses",
     icon: Store,
     countKey: "businesses",
+  },
+  {
+    title: "Claims",
+    href: "/admin/claims",
+    icon: UserCheck,
+    countKey: "claims",
   },
   {
     title: "Flyers",

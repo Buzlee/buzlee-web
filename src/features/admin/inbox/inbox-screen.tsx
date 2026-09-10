@@ -13,6 +13,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import type { AdminBusinessSummary } from "@/entities/admin";
 import {
+  CLAIM_DECLINE_REASONS,
   claimDomainMatch,
   useAdminBusinesses,
   useAdminResidents,
@@ -32,14 +33,6 @@ import { ConfirmDialog } from "@/features/admin/dialogs/confirm-dialog";
 import { RejectDialog } from "@/features/admin/dialogs/reject-dialog";
 import { formatRelativeTime, ownerLabel } from "@/features/admin/lib/format";
 
-/** Quick-pick reasons for declining a business claim (web-only copy). */
-const CLAIM_DECLINE_REASONS = [
-  "Could not verify ownership",
-  "Business already claimed",
-  "Contact info does not match",
-  "Other",
-] as const;
-
 type ClaimAction = {
   type: "approve" | "decline";
   claim: BusinessClaimWithBusiness;
@@ -52,18 +45,28 @@ function reviewHref(businessId: string): string {
 function SectionCard({
   title,
   count,
+  seeAllHref,
   children,
 }: {
   title: string;
   count: number;
+  seeAllHref?: string;
   children: React.ReactNode;
 }) {
   return (
     <section className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-      <header className="border-b border-border px-5 py-3">
+      <header className="flex items-center justify-between border-b border-border px-5 py-3">
         <h2 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
           {title} · <span className="text-foreground">{count}</span>
         </h2>
+        {seeAllHref ? (
+          <Link
+            className="text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
+            href={seeAllHref}
+          >
+            See all
+          </Link>
+        ) : null}
       </header>
       {children}
     </section>
@@ -278,7 +281,11 @@ export function InboxScreen() {
       ) : (
         <>
           {approvals.length > 0 ? (
-            <SectionCard count={approvals.length} title="Business approvals">
+            <SectionCard
+              count={approvals.length}
+              seeAllHref="/admin/businesses"
+              title="Business approvals"
+            >
               <ul className="divide-y divide-border">
                 {approvals.map((business) => (
                   <ApprovalRow business={business} key={business.id} />
@@ -287,7 +294,11 @@ export function InboxScreen() {
             </SectionCard>
           ) : null}
           {claims.length > 0 ? (
-            <SectionCard count={claims.length} title="Claim requests">
+            <SectionCard
+              count={claims.length}
+              seeAllHref="/admin/claims"
+              title="Claim requests"
+            >
               <ul className="divide-y divide-border">
                 {claims.map((claim) => (
                   <ClaimRow
