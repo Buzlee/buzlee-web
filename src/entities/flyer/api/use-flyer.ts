@@ -1,6 +1,10 @@
 // PORTED FROM buzlee-app/src/entities/flyer/api/use-flyer.ts — keep in sync; see docs/admin-sync.md
-// Web trim: only the query-key factory is ported. The hooks in the
-// buzlee-app original are resident/business-side and RN-specific.
+// Web trim: the query-key factory plus `useFlyer` / `useFlyerTags` (the flyer
+// wizard's edit-mode reads). The remaining hooks in the buzlee-app original
+// are resident/business-side and RN-specific.
+import { useQuery } from "@tanstack/react-query";
+import * as queries from "./flyer-queries";
+import * as tagQueries from "./flyer-tag-queries";
 
 /**
  * Query key factory for flyer queries
@@ -31,3 +35,25 @@ export const flyerKeys = {
     [...flyerKeys.all, "remindedEvents", residentId, flyerId] as const,
   flyerTags: (flyerId: string) => [...flyerKeys.all, "tags", flyerId] as const,
 };
+
+/**
+ * Fetch single flyer by ID
+ */
+export function useFlyer(id: string) {
+  return useQuery({
+    queryKey: flyerKeys.detail(id),
+    queryFn: () => queries.fetchFlyer(id),
+    enabled: !!id,
+  });
+}
+
+/**
+ * Fetch tags for a flyer
+ */
+export function useFlyerTags(flyerId: string) {
+  return useQuery({
+    queryKey: flyerKeys.flyerTags(flyerId),
+    queryFn: () => tagQueries.fetchFlyerTags(flyerId),
+    enabled: !!flyerId,
+  });
+}

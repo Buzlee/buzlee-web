@@ -95,3 +95,42 @@ export async function prepareImage(
     );
   });
 }
+
+/** Portrait cover photo crop used by the flyer wizard (app: `aspect: [2, 3]`). */
+export const FLYER_COVER_ASPECT = 2 / 3;
+
+export const ACCEPTED_IMAGE_TYPES = ACCEPTED_TYPES;
+
+/**
+ * Re-encode a picked image as JPEG without cropping (the app uploads flyer
+ * artwork uncropped at quality 0.8). JPEG sources pass through untouched so
+ * the stored bytes match what the app would upload.
+ */
+export async function toJpegBlob(file: File, maxSize = 2400): Promise<Blob> {
+  if (file.type === "image/jpeg") return file;
+  const source = await decode(file);
+  const srcW = source.width;
+  const srcH = source.height;
+  if (!srcW || !srcH) throw new Error("Could not read image dimensions");
+  const scale = Math.min(1, maxSize / Math.max(srcW, srcH));
+  const outW = Math.max(1, Math.round(srcW * scale));
+  const outH = Math.max(1, Math.round(srcH * scale));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = outW;
+  canvas.height = outH;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas not supported");
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, outW, outH);
+  ctx.drawImage(source, 0, 0, outW, outH);
+  if ("close" in source && typeof source.close === "function") source.close();
+
+  return new Promise<Blob>((resolve, reject) => {
+    canvas.toBlob(
+      (blob) => (blob ? resolve(blob) : reject(new Error("Encoding failed"))),
+      "image/jpeg",
+      JPEG_QUALITY,
+    );
+  });
+}

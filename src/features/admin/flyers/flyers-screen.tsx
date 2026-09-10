@@ -226,6 +226,13 @@ export function FlyersScreen() {
                         >
                           View flyer
                         </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onSelect={() =>
+                            router.push(`/admin/flyers/edit?id=${flyer.id}`)
+                          }
+                        >
+                          Edit flyer
+                        </DropdownMenuItem>
                         {flyer.status === "live" ? (
                           <DropdownMenuItem
                             onSelect={() => setTakedownTarget(flyer)}

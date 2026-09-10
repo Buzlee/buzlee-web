@@ -7,7 +7,7 @@ import {
   MoreHorizontal,
 } from "lucide-react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,7 @@ import { TableSkeleton } from "@/features/admin/components/table-skeleton";
 import { DeleteDialog } from "@/features/admin/dialogs/delete-dialog";
 import { RejectDialog } from "@/features/admin/dialogs/reject-dialog";
 import { formatRelativeTime, ownerLabel } from "@/features/admin/lib/format";
+import { BusinessFlyersPanel } from "@/features/admin/review/business-flyers-panel";
 import { EditBusinessSheet } from "@/features/admin/review/edit-business-sheet";
 import { useReviewShortcuts } from "@/features/admin/review/use-review-shortcuts";
 import { PageHeader } from "@/features/admin/shell/page-header";
@@ -122,6 +123,7 @@ function PendingListItem({
 
 export function ReviewScreen() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const urlId = searchParams.get("id");
   const [selectedId, setSelectedId] = useState<string | null>(urlId);
   const [rejectOpen, setRejectOpen] = useState(false);
@@ -263,6 +265,15 @@ export function ReviewScreen() {
                   <DropdownMenuItem onSelect={() => setEditOpen(true)}>
                     Edit details
                   </DropdownMenuItem>
+                  {business.status === "approved" ? (
+                    <DropdownMenuItem
+                      onSelect={() =>
+                        router.push(`/admin/flyers/new?business=${business.id}`)
+                      }
+                    >
+                      Create flyer
+                    </DropdownMenuItem>
+                  ) : null}
                   {!business.user_id && business.email ? (
                     <DropdownMenuItem
                       disabled={sendClaimInvite.isPending}
@@ -462,6 +473,11 @@ export function ReviewScreen() {
                     ) : null}
                   </div>
                 </div>
+
+                <BusinessFlyersPanel
+                  businessId={business.id}
+                  businessStatus={business.status}
+                />
               </div>
 
               {business.status === "pending" ? (

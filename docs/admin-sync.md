@@ -70,6 +70,26 @@ provenance header added.
 | `src/entities/catalog/api/catalog-queries.ts` | same | verbatim; categories/towns for the edit form |
 | `src/entities/catalog/api/use-catalog.ts` | same | verbatim |
 | `src/entities/catalog/api/index.ts`, `src/entities/catalog/index.ts` | same | verbatim barrels |
+| `src/entities/flyer/lib/age-restriction.ts` | same | verbatim (one `// Web fix:` — `minMonths!` → `?? 0`) |
+| `src/entities/flyer/lib/flyer-datetime.ts` | same | verbatim |
+| `src/entities/flyer/lib/send-member-flyer-notification.ts` | same | verbatim; `member-flyer-notify` edge function |
+| `src/entities/flyer/api/flyer-queries.ts` | same | web trim — see "Web adaptations" |
+| `src/entities/flyer/api/flyer-tag-queries.ts` | same | `fetchFlyerTags` + `setFlyerTags` only; join typed instead of `as any` |
+| `src/entities/flyer/api/flyer-status-mutations.ts` | same | `publishFlyer` / `unpublishFlyer` / `deleteFlyerAndTrack` / `isFlyerEventPast`; each takes the caller's `QueryClient` (no module-level client on the web); no analytics |
+| `src/entities/member/api/member-queries.ts`, `use-member.ts` | same | `fetchActiveMemberCount` / `useActiveMemberCount` + `memberKeys` only (`get_business_member_count` RPC) |
+| `src/features/flyer-wizard/model/types.ts` | `src/features/admin/flyer-wizard/model/types.ts` | verbatim + `// Web fix:` optional `file?: File` on `FlyerMediaDraft` / `CoverPhotoDraft` |
+| `src/features/flyer-wizard/model/create-flyer-draft.ts` | `src/features/admin/flyer-wizard/model/…` | verbatim |
+| `src/features/flyer-wizard/model/wizard-steps.ts` | same (under `features/admin/flyer-wizard`) | verbatim; all step / flyer-type copy |
+| `src/features/flyer-wizard/model/wizard-reducer.ts` | same | verbatim |
+| `src/features/flyer-wizard/lib/serialize-flyer-draft.ts` | same | verbatim; builds the `upsert_flyer_with_events` payload |
+| `src/features/flyer-wizard/lib/validate-wizard-step.ts` | same | verbatim (one `// Web fix:` — `Number.isNaN`) |
+| `src/features/flyer-wizard/lib/section-status.ts` | same | verbatim |
+| `src/features/flyer-wizard/lib/format-event-summary.ts` | same | verbatim |
+| `src/features/flyer-wizard/lib/local-id.ts` | same | `crypto.randomUUID` instead of expo-crypto |
+| `src/features/flyer-wizard/lib/event-colors.ts` | same | same three tokens (`--chart-1`, `--primary`, `--chart-5`) as Tailwind classes |
+| `src/features/flyer-wizard/model/wizard-api.ts` | same | trimmed — no date/time sheet, no `saveAndExit` / `discardLocal`; `exit()` added |
+| `src/features/flyer-wizard/model/use-flyer-wizard.ts` | same | see "Web adaptations" |
+| `src/features/flyer-wizard/model/use-flyer-wizard-submit.ts` | same | see "Web adaptations" |
 
 Deliberately **not** ported: `entities/business-claim/api/use-business-claim.ts`
 (RN/owner-side hooks) — replaced by the web-only
@@ -167,6 +187,52 @@ model/types.ts and used for the sidebar nav counts.
   `app/(admin-detail)/flyer-review/[id]` minus "View on map" (map not ported
   yet — roadmap item 4). `flyer-lineup.tsx` is the web port of
   `features/admin-flyer-review/ui/AdminFlyerLineup`.
+- `src/features/admin/flyer-wizard/**` — web port of the mobile flyer wizard
+  (admin variant). Model/lib files are verbatim ports (table above); the
+  hooks and UI are web-specific:
+  - `model/use-flyer-wizard.ts` — RN `Alert` decisions (multi → single,
+    remove event, discard changes) go through the injected promise-based
+    `confirm()` (`features/admin/dialogs/use-confirm.tsx`). The AsyncStorage
+    autosave / resume and `usePreventRemove` are **not** ported: drafts live
+    in memory for the page's lifetime and a `beforeunload` prompt guards
+    reloads. No shared date/time sheet — steps use native
+    `<input type="date|time">`.
+  - `model/use-flyer-wizard-submit.ts` — same sequence as the app (encode →
+    RPC upsert → media/cover upload → patch URLs → tags → invalidate →
+    member notify; delete-rollback on a failed create). Uploads take Blobs
+    from `lib/media.ts`: PDFs as-is, images re-encoded to JPEG (no crop,
+    like the app's artwork picker), cover photos centre-cropped 2:3 like the
+    app's `aspect: [2, 3]`. A removed cover is deleted only after the row
+    no longer references it. Cache invalidation uses `useQueryClient` and
+    also hits `adminKeys.flyers()` / `businessDetail` / `statusCounts`.
+  - `ui/**` — `WizardShell` (nav row, progress segments, pinned footer),
+    step screens mirroring the app's `basics / schedule / lineup /
+    event-form / details / location / review`, chips, toggle, artwork
+    dropzone (drag-and-drop + file picker, image or PDF), cover-photo row,
+    age-restriction fields, tag selector (catalog `tags`, max 5, no tag
+    creation), visibility choice with the live member count, review rows +
+    preview card. The multi-event **lineup month calendar is not ported**
+    (list only); the Location step shows the picked address instead of a
+    map preview.
+  - `ui/flyer-wizard-screen.tsx` — session orchestration; Unpublish /
+    Delete on the live edit hub call `flyer-status-mutations` with the
+    app's confirm copy.
+- `src/features/admin/flyers/create-flyer-screen.tsx` /
+  `edit-flyer-screen.tsx` — `/admin/flyers/new?business=<id>` and
+  `/admin/flyers/edit?id=<flyerId>` (mobile: `(admin-detail)/create-flyer/[businessId]`,
+  `edit-flyer/[id]`). Success → business review; cancel → back where you
+  came from.
+- `src/features/admin/review/business-flyers-panel.tsx` — port of mobile
+  `AdminBusinessFlyersPanel` (Create flyer / View / Edit per flyer) using
+  `useAdminFlyers({ businessId })`. Rendered on the business review page.
+- `src/entities/flyer/api/flyer-queries.ts` — web trim of the app file:
+  `fetchFlyer`, `normalizeFlyerEvents`, `upsertFlyerWithEvents`,
+  `updateFlyer`, `deleteFlyer`, `uploadFlyerMedia` / `uploadFlyerCoverPhoto`
+  (take a `Blob`; bucket `flyer-media`, paths `<id>/<ts>.jpg|pdf` and
+  `<id>/cover-<ts>.jpg`, delete-after-upload — identical to the app),
+  `deleteFlyerMedia` / `deleteFlyerCoverPhoto`, `cleanupOrphanedFlyerMedia`.
+  The app's debug `console.log` ownership checks are dropped. Resident list
+  / discovery queries are not ported.
 - `src/features/admin/claims/claims-screen.tsx` — web claim history
   (Pending / Approved / Declined chips, search, side panel with domain
   signal, decision date and decline reason; approve/decline for pending).
@@ -191,6 +257,8 @@ RPCs (SECURITY DEFINER unless noted; all gated on `is_admin()` in SQL):
 - `get_admin_deleted_businesses()` — soft-deleted rows hidden by RLS
 - `admin_soft_delete_entity(p_entity, p_id)` — 15-day retention delete
 - `admin_restore_entity(p_entity, p_id)` — undo soft delete
+- `upsert_flyer_with_events(p_flyer, p_events)` — flyer wizard create/edit (id-preserving event replace)
+- `get_business_member_count(p_business_id)` — "Members only" helper copy in the wizard
 - `approve_business_claim(p_claim_id)` — claim approval (atomic)
 - `reject_business_claim(p_claim_id, p_reason)` — claim rejection
 - `is_admin()` — used inside RLS policies (not called directly)
@@ -201,10 +269,13 @@ Edge functions (invoked with the user's JWT; they authorize admin):
 - `business-status-email` — approval/rejection email
 - `business-claim-invite` — “claim your business” invite email
 - `business-claim-approved-email` — claim-approved email
+- `member-flyer-notify` — notifies business members when a flyer goes live (wizard publish / edit of a live flyer)
 
 Direct table access relies on admin RLS policies for: `businesses`
-(select/insert/update), `flyers` (select/update), `business_claims`
-(select), `profiles` (select own role).
+(select/insert/update), `flyers` (select/update/delete), `flyer_tags`
+(select/insert/delete), `tags` (select), `business_claims` (select),
+`profiles` (select own role). Storage: `flyer-media` (upload/remove/list)
+and `business-assets` (upload/remove).
 
 ## Auth flow
 

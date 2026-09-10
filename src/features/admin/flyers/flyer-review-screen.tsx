@@ -130,6 +130,13 @@ export function FlyerReviewScreen() {
   return (
     <div className="flex h-svh flex-col">
       <PageHeader
+        actions={
+          flyer ? (
+            <Button asChild size="sm" variant="outline">
+              <Link href={`/admin/flyers/edit?id=${flyer.id}`}>Edit flyer</Link>
+            </Button>
+          ) : undefined
+        }
         title={
           <span className="flex items-center gap-2 truncate">
             <Link
