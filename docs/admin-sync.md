@@ -88,6 +88,18 @@ nullability; buzlee-app's originals do not compile under it unchanged:
 - `entities/business-claim/api/business-claim-queries.ts` —
   `submitBusinessClaimWithToken` optional RPC args use `?? undefined`
   instead of `?? null` (omitted args hit the same SQL defaults).
+- `entities/admin/api/admin-queries.ts` — the app's business/flyer/resident
+  mappers read embedded relations through `as any`; the web repo lints
+  `noExplicitAny`, so the joined rows are typed (`AdminBusinessRow`,
+  `AdminFlyerRow`, `NamedRelation`) and the two business reads share one
+  `ADMIN_BUSINESS_SELECT` + `mapAdminBusinessRow` (same pattern the app
+  already uses for flyers). Select strings and output shape are identical;
+  worth upstreaming.
+- `entities/admin/api/use-admin.ts` — `userId!` → `requireUserId(userId)`
+  (throws "Not signed in"); web `useAuth()` resolves the session async, the
+  app's store is hydrated before mount.
+- `entities/flyer/lib/flyer-helper.ts` — `(upcoming ?? latestPast)!` → explicit
+  null check that throws; unreachable because `events` is non-empty there.
 - All ported files are reformatted by Biome (double quotes, `import type`)
   — re-sync by re-copying from buzlee-app and re-running `pnpm format`.
 

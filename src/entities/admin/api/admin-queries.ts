@@ -16,6 +16,93 @@ import type {
   AdminStatusCounts,
 } from "../model/types";
 
+// Web fix: the app's mappers read embedded relations through `as any`. The
+// web repo's stricter lint (noExplicitAny) instead types the joined row
+// explicitly; the select string and the flattened output are unchanged.
+
+/** `{ id, name }` embed for a many-to-one FK (null when the FK is null). */
+type NamedRelation = { id: string; name: string } | null;
+
+/**
+ * Columns + relations every admin business read embeds. Kept as one string so
+ * the detail and list reads cannot drift.
+ */
+const ADMIN_BUSINESS_SELECT = `
+  id,
+  user_id,
+  name,
+  description,
+  email,
+  phone,
+  website,
+  address,
+  location,
+  logo_url,
+  cover_photo_url,
+  status,
+  approved_at,
+  approved_by,
+  rejected_at,
+  rejected_by,
+  rejection_reason,
+  created_at,
+  updated_at,
+  category:business_categories(id, name),
+  town:towns(id, name)
+`;
+
+type AdminBusinessRow = Pick<
+  Business,
+  | "id"
+  | "user_id"
+  | "name"
+  | "description"
+  | "email"
+  | "phone"
+  | "website"
+  | "address"
+  | "location"
+  | "logo_url"
+  | "cover_photo_url"
+  | "status"
+  | "approved_at"
+  | "approved_by"
+  | "rejected_at"
+  | "rejected_by"
+  | "rejection_reason"
+  | "created_at"
+  | "updated_at"
+> & { category: NamedRelation; town: NamedRelation };
+
+/** Flatten one joined businesses row into the admin summary shape. */
+function mapAdminBusinessRow(row: AdminBusinessRow): AdminBusinessSummary {
+  return {
+    id: row.id,
+    user_id: row.user_id,
+    name: row.name,
+    description: row.description ?? null,
+    email: row.email,
+    phone: row.phone,
+    website: row.website,
+    address: row.address,
+    location: row.location,
+    logo_url: row.logo_url,
+    cover_photo_url: row.cover_photo_url,
+    status: row.status,
+    approved_at: row.approved_at,
+    approved_by: row.approved_by,
+    rejected_at: row.rejected_at,
+    rejected_by: row.rejected_by,
+    rejection_reason: row.rejection_reason,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+    category_id: row.category?.id ?? null,
+    category_name: row.category?.name ?? null,
+    town_id: row.town?.id ?? null,
+    town_name: row.town?.name ?? null,
+  };
+}
+
 /**
  * Fetch single business for admin with full details
  * Efficient query for detail views - fetches only the requested business
@@ -25,62 +112,13 @@ export async function fetchAdminBusiness(
 ): Promise<AdminBusinessSummary> {
   const { data, error } = await supabase
     .from("businesses")
-    .select(
-      `
-      id,
-      user_id,
-      name,
-      description,
-      email,
-      phone,
-      website,
-      address,
-      location,
-      logo_url,
-      cover_photo_url,
-      status,
-      approved_at,
-      approved_by,
-      rejected_at,
-      rejected_by,
-      rejection_reason,
-      created_at,
-      updated_at,
-      category:business_categories(id, name),
-      town:towns(id, name)
-    `,
-    )
+    .select(ADMIN_BUSINESS_SELECT)
     .eq("id", businessId)
     .single();
 
   if (error) throw error;
 
-  // Transform joined data to flat structure
-  return {
-    id: data.id,
-    user_id: data.user_id,
-    name: data.name,
-    description: (data as any).description ?? null,
-    email: data.email,
-    phone: data.phone,
-    website: data.website,
-    address: data.address,
-    location: data.location,
-    logo_url: data.logo_url,
-    cover_photo_url: data.cover_photo_url,
-    status: data.status,
-    approved_at: data.approved_at,
-    approved_by: data.approved_by,
-    rejected_at: data.rejected_at,
-    rejected_by: data.rejected_by,
-    rejection_reason: data.rejection_reason,
-    created_at: data.created_at,
-    updated_at: data.updated_at,
-    category_id: (data.category as any)?.id ?? null,
-    category_name: (data.category as any)?.name ?? null,
-    town_id: (data.town as any)?.id ?? null,
-    town_name: (data.town as any)?.name ?? null,
-  };
+  return mapAdminBusinessRow(data);
 }
 
 /**
@@ -92,31 +130,7 @@ export async function fetchAdminBusinesses(
 ): Promise<AdminBusinessSummary[]> {
   let query = supabase
     .from("businesses")
-    .select(
-      `
-      id,
-      user_id,
-      name,
-      description,
-      email,
-      phone,
-      website,
-      address,
-      location,
-      logo_url,
-      cover_photo_url,
-      status,
-      approved_at,
-      approved_by,
-      rejected_at,
-      rejected_by,
-      rejection_reason,
-      created_at,
-      updated_at,
-      category:business_categories(id, name),
-      town:towns(id, name)
-    `,
-    )
+    .select(ADMIN_BUSINESS_SELECT)
     .order("created_at", { ascending: false });
 
   if (filters?.status) {
@@ -139,32 +153,7 @@ export async function fetchAdminBusinesses(
 
   if (error) throw error;
 
-  // Transform joined data to flat structure
-  return data.map((item: any) => ({
-    id: item.id,
-    user_id: item.user_id,
-    name: item.name,
-    description: item.description ?? null,
-    email: item.email,
-    phone: item.phone,
-    website: item.website,
-    address: item.address,
-    location: item.location,
-    logo_url: item.logo_url,
-    cover_photo_url: item.cover_photo_url,
-    status: item.status,
-    approved_at: item.approved_at,
-    approved_by: item.approved_by,
-    rejected_at: item.rejected_at,
-    rejected_by: item.rejected_by,
-    rejection_reason: item.rejection_reason,
-    created_at: item.created_at,
-    updated_at: item.updated_at,
-    category_id: item.category?.id ?? null,
-    category_name: item.category?.name ?? null,
-    town_id: item.town?.id ?? null,
-    town_name: item.town?.name ?? null,
-  }));
+  return data.map(mapAdminBusinessRow);
 }
 
 /**
@@ -211,8 +200,33 @@ function sortAdminFlyerEvents(
   });
 }
 
+type AdminFlyerRow = Pick<
+  Flyer,
+  | "id"
+  | "business_id"
+  | "title"
+  | "description"
+  | "media_url"
+  | "media_type"
+  | "flyer_type"
+  | "event_date"
+  | "event_time"
+  | "event_end_date"
+  | "expires_at"
+  | "location_address"
+  | "external_link"
+  | "status"
+  | "created_at"
+  | "updated_at"
+> & {
+  business: { name: string; logo_url: string | null } | null;
+  category: NamedRelation;
+  town: NamedRelation;
+  flyer_events: FlyerEvent[] | null;
+};
+
 /** Flatten one joined flyers row into the admin summary shape. */
-function mapAdminFlyerRow(item: any): AdminFlyerSummary {
+function mapAdminFlyerRow(item: AdminFlyerRow): AdminFlyerSummary {
   return {
     id: item.id,
     business_id: item.business_id,
@@ -289,7 +303,7 @@ export async function fetchAdminResidents(): Promise<AdminResidentSummary[]> {
 
   if (error) throw error;
 
-  return ((data ?? []) as any[]).map((row) => ({
+  return (data ?? []).map((row) => ({
     id: row.id,
     user_id: row.user_id,
     first_name: row.first_name,

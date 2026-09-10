@@ -360,7 +360,10 @@ export function getFlyerNextOccurrenceWindow(
     }
   }
 
-  const pick = (upcoming ?? latestPast)!;
+  // Web fix: `events` is non-empty here, so one of the two is always set; make
+  // that explicit instead of a non-null assertion.
+  const pick = upcoming ?? latestPast;
+  if (!pick) throw new Error("flyer has events but no occurrence window");
   return { start: pick.window.start, end: pick.window.end, event: pick.event };
 }
 

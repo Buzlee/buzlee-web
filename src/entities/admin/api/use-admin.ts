@@ -14,6 +14,18 @@ import type {
 import * as queries from "./admin-queries";
 
 /**
+ * Web fix: the app reads `userId!` because its auth store is hydrated before
+ * any admin screen mounts. On web `useAuth()` resolves the session
+ * asynchronously, so a mutation fired during that first tick must fail
+ * loudly instead of writing a null actor id (RLS would reject it anyway,
+ * but with a far less useful error).
+ */
+function requireUserId(userId: string | null): string {
+  if (!userId) throw new Error("Not signed in");
+  return userId;
+}
+
+/**
  * Query key factory for admin queries
  * Hierarchical structure allows selective invalidation
  */
@@ -133,7 +145,7 @@ export function useAdminCreateBusiness() {
 
   return useMutation({
     mutationFn: (input: queries.CreateUnclaimedBusinessInput) =>
-      queries.createUnclaimedBusiness(input, userId!),
+      queries.createUnclaimedBusiness(input, requireUserId(userId)),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: adminKeys.businesses() });
       queryClient.invalidateQueries({ queryKey: adminKeys.stats() });
@@ -188,7 +200,7 @@ export function useAdminApproveBusiness() {
 
   return useMutation({
     mutationFn: (businessId: string) =>
-      queries.approveBusiness(businessId, userId!),
+      queries.approveBusiness(businessId, requireUserId(userId)),
     onSuccess: (updatedBusiness) => {
       // Invalidate admin queries
       queryClient.invalidateQueries({ queryKey: adminKeys.businesses() });
@@ -226,7 +238,7 @@ export function useAdminRejectBusiness() {
     }: {
       businessId: string;
       reason: string;
-    }) => queries.rejectBusiness(businessId, userId!, reason),
+    }) => queries.rejectBusiness(businessId, requireUserId(userId), reason),
     onSuccess: (updatedBusiness) => {
       // Invalidate admin queries
       queryClient.invalidateQueries({ queryKey: adminKeys.businesses() });
@@ -316,7 +328,7 @@ export function useAdminRejectFlyer() {
 
   return useMutation({
     mutationFn: ({ flyerId, reason }: { flyerId: string; reason: string }) =>
-      queries.rejectFlyer(flyerId, userId!, reason),
+      queries.rejectFlyer(flyerId, requireUserId(userId), reason),
     onSuccess: () => {
       // Invalidate admin queries
       queryClient.invalidateQueries({ queryKey: adminKeys.flyers() });
