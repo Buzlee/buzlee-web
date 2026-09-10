@@ -1,5 +1,5 @@
-// Web barrel — mirrors buzlee-app/src/entities/admin/index.ts minus the
-// unported RN-side lib exports (residents-csv).
+// Web barrel — mirrors buzlee-app/src/entities/admin/index.ts.
 export * from "./api";
 export * from "./lib/domain-match";
+export * from "./lib/residents-csv";
 export * from "./model";

@@ -43,6 +43,7 @@ provenance header added.
 | `src/entities/admin/model/types.ts` | same | verbatim |
 | `src/entities/admin/model/moderation.ts` | same | verbatim; REJECT_REASONS, FLYER_TAKEDOWN_REASONS, CLAIM_DECLINE_REASONS, DELETE_RETENTION_DAYS, purge helpers |
 | `src/entities/admin/lib/send-business-status-email.ts` | same | verbatim |
+| `src/entities/admin/lib/residents-csv.ts` | same | `buildResidentsCsv` verbatim; `exportResidentsCsv` keeps only the app's web (Blob download) branch |
 | `src/entities/location/model/types.ts` | same | verbatim |
 | `src/entities/location/model/address-search.ts` | same | verbatim |
 | `src/entities/location/model/address-field-copy.ts` | same | verbatim |

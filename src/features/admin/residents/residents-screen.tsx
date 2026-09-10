@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, MoreHorizontal, Users } from "lucide-react";
+import { Copy, Download, MoreHorizontal, Users } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { AdminResidentSummary } from "@/entities/admin";
-import { useAdminResidents } from "@/entities/admin";
+import { exportResidentsCsv, useAdminResidents } from "@/entities/admin";
 import { EmptyState } from "@/features/admin/components/empty-state";
 import { InitialsAvatar } from "@/features/admin/components/initials-avatar";
 import { SearchInput } from "@/features/admin/components/search-input";
@@ -70,6 +70,21 @@ export function ResidentsScreen() {
     ? (residents?.find((resident) => resident.id === selectedId) ?? null)
     : null;
 
+  /** Exports the rows currently visible (search-filtered), like the app. */
+  function handleExport() {
+    if (rows.length === 0) return;
+    try {
+      exportResidentsCsv(rows);
+      toast.success(
+        `Exported ${rows.length} resident${rows.length === 1 ? "" : "s"}`,
+      );
+    } catch (err) {
+      toast.error(
+        `Export failed: ${err instanceof Error ? err.message : "Please try again."}`,
+      );
+    }
+  }
+
   function copyEmail(email: string | null) {
     if (!email) return;
     navigator.clipboard
@@ -87,12 +102,24 @@ export function ResidentsScreen() {
               ? `${residents.length} resident${residents.length === 1 ? "" : "s"}`
               : "Loading…"}
           </span>
-          <SearchInput
-            className="w-64"
-            onChange={setSearch}
-            placeholder="Search residents"
-            value={search}
-          />
+          <div className="flex items-center gap-2">
+            <SearchInput
+              className="w-64"
+              onChange={setSearch}
+              placeholder="Search residents"
+              value={search}
+            />
+            <Button
+              disabled={rows.length === 0}
+              onClick={handleExport}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              <Download />
+              Export CSV
+            </Button>
+          </div>
         </div>
 
         <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
