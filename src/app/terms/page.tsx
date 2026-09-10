@@ -35,8 +35,8 @@ const sections: Section[] = [
     body: (
       <div className="flex flex-col gap-6">
         <p>
-          The information Buzlee collects depends on whether you use Buzlee as
-          a resident, a business, or both.
+          The information Buzlee collects depends on whether you use Buzlee as a
+          resident, a business, or both.
         </p>
 
         <div className="flex flex-col gap-2">
@@ -55,12 +55,12 @@ const sections: Section[] = [
           <h3>Resident profile information</h3>
           <p>
             If you use Buzlee as a resident, we may collect your first and last
-            name, home town, an optional contact email you share with
-            businesses you subscribe to (commonly used when you sign in with
-            Apple's private email relay), the flyers you save, the businesses
-            you subscribe to, your notification preferences, and your
-            interactions with flyers and business updates (such as saves,
-            shares, and check-ins).
+            name, home town, an optional contact email you share with businesses
+            you subscribe to (commonly used when you sign in with Apple's
+            private email relay), the flyers you save, the businesses you
+            subscribe to, your notification preferences, and your interactions
+            with flyers and business updates (such as saves, shares, and
+            check-ins).
           </p>
         </div>
 
@@ -82,13 +82,13 @@ const sections: Section[] = [
           <h3>Flyer, event, and content information</h3>
           <p>
             When businesses create flyers or post updates, we collect the
-            flyer's title and description, image or PDF media, an optional
-            cover photo, event start and optional end dates and times,
-            recurrence rules (such as daily, weekly with selected days, or
-            monthly), category and up to five tags, any age restriction, the
-            event's location address and optional location name, an optional
-            external link, the flyer's status (such as draft, live, expired,
-            or archived), and posts shared with subscribers.
+            flyer's title and description, image or PDF media, an optional cover
+            photo, event start and optional end dates and times, recurrence
+            rules (such as daily, weekly with selected days, or monthly),
+            category and up to five tags, any age restriction, the event's
+            location address and optional location name, an optional external
+            link, the flyer's status (such as draft, live, expired, or
+            archived), and posts shared with subscribers.
           </p>
         </div>
 
@@ -97,10 +97,10 @@ const sections: Section[] = [
           <p>
             With your permission, Buzlee uses your device location to show
             nearby flyers, events, and businesses in the Feed and on the map.
-            Business addresses provided by businesses are geocoded so flyers
-            and businesses can appear in location-based search and on the map.
-            You can enable or disable device location access at any time
-            through your device settings.
+            Business addresses provided by businesses are geocoded so flyers and
+            businesses can appear in location-based search and on the map. You
+            can enable or disable device location access at any time through
+            your device settings.
           </p>
         </div>
 
@@ -108,9 +108,9 @@ const sections: Section[] = [
           <h3>Usage and analytics information</h3>
           <p>
             We collect information about how Buzlee is used, including flyer
-            views, saves, shares, check-ins, subscription activity,
-            notification delivery and open status, app performance, device
-            type, operating system, log data, and error reports.
+            views, saves, shares, check-ins, subscription activity, notification
+            delivery and open status, app performance, device type, operating
+            system, log data, and error reports.
           </p>
         </div>
 
@@ -119,23 +119,22 @@ const sections: Section[] = [
           <p>
             We use <strong>PostHog</strong> for product analytics and session
             replay. When you are signed in, we identify you to PostHog using
-            your account email, name, and account role so that usage events
-            can be associated with your account. PostHog session replay
-            records your interactions with the app, the layout of screens you
-            visit, console logs, and network activity. Both text input fields
-            and images are masked in session replays, so the text you type
-            (such as passwords, search queries, or messages) and the images
-            displayed on screen (such as flyer media, logos, or cover photos)
-            are not captured. PostHog data is processed in the United States.
+            your account email, name, and account role so that usage events can
+            be associated with your account. PostHog session replay records your
+            interactions with the app, the layout of screens you visit, console
+            logs, and network activity. Both text input fields and images are
+            masked in session replays, so the text you type (such as passwords,
+            search queries, or messages) and the images displayed on screen
+            (such as flyer media, logos, or cover photos) are not captured.
+            PostHog data is processed in the United States.
           </p>
           <p>
             We use <strong>Sentry</strong> for crash reporting and performance
             monitoring. Sentry receives error details, stack traces, device
-            information, and performance traces for a portion of app activity
-            so we can diagnose and fix issues. Sentry is configured to omit
-            default user-identifying information (such as IP address) from
-            error events, and we do not attach your account identifiers to
-            Sentry reports.
+            information, and performance traces for a portion of app activity so
+            we can diagnose and fix issues. Sentry is configured to omit default
+            user-identifying information (such as IP address) from error events,
+            and we do not attach your account identifiers to Sentry reports.
           </p>
         </div>
 
@@ -145,10 +144,10 @@ const sections: Section[] = [
             To deliver the app and notifications, we collect device-level
             identifiers such as a device or installation identifier and, when
             you enable push notifications, a push notification token issued by
-            Apple Push Notification service or Firebase Cloud Messaging. We
-            use these identifiers to send notifications to your device, to
-            associate sessions with your account, and to investigate
-            performance and security issues.
+            Apple Push Notification service or Firebase Cloud Messaging. We use
+            these identifiers to send notifications to your device, to associate
+            sessions with your account, and to investigate performance and
+            security issues.
           </p>
         </div>
 
@@ -165,10 +164,10 @@ const sections: Section[] = [
           <h3>Information we do not collect</h3>
           <p>
             Buzlee does not collect payment card numbers, financial account
-            details, health or fitness data, your contacts, your photo or
-            media library beyond the images and PDFs you choose to upload, or
-            advertising identifiers (IDFA). Buzlee does not include
-            third-party advertising.
+            details, health or fitness data, your contacts, your photo or media
+            library beyond the images and PDFs you choose to upload, or
+            advertising identifiers (IDFA). Buzlee does not include third-party
+            advertising.
           </p>
         </div>
       </div>
@@ -184,8 +183,8 @@ const sections: Section[] = [
           <li>Provide and operate the Buzlee app and related services</li>
           <li>Create and manage resident and business accounts</li>
           <li>
-            Show flyers, events, businesses, maps, and local updates relevant
-            to you
+            Show flyers, events, businesses, maps, and local updates relevant to
+            you
           </li>
           <li>
             Save flyers, manage subscriptions, and deliver reminders for events
@@ -221,9 +220,9 @@ const sections: Section[] = [
           <h3>With other Buzlee users</h3>
           <p>
             Approved business profiles, live flyers, event details, media,
-            locations, and business posts are visible to residents in the
-            Buzlee app. Your saved flyers, subscriptions, and notification
-            settings are not shown to other users.
+            locations, and business posts are visible to residents in the Buzlee
+            app. Your saved flyers, subscriptions, and notification settings are
+            not shown to other users.
           </p>
         </div>
 
@@ -243,19 +242,19 @@ const sections: Section[] = [
             We rely on trusted service providers to help operate Buzlee,
             including hosting, authentication, database, file storage, email
             delivery, push notifications, mapping and geocoding, and analytics
-            providers. These providers may process information only as needed
-            to provide services to Buzlee and are required by contract to
-            provide the same or equivalent protection of your information as
-            this Privacy Policy describes, and to use it only for the purposes
-            we authorize.
+            providers. These providers may process information only as needed to
+            provide services to Buzlee and are required by contract to provide
+            the same or equivalent protection of your information as this
+            Privacy Policy describes, and to use it only for the purposes we
+            authorize.
           </p>
         </div>
 
         <div className="flex flex-col gap-2">
           <h3>For legal and safety reasons</h3>
           <p>
-            We may disclose information if required by law, legal process, or
-            a government request, or if we believe disclosure is necessary to
+            We may disclose information if required by law, legal process, or a
+            government request, or if we believe disclosure is necessary to
             protect users, Buzlee, or the public.
           </p>
         </div>
@@ -264,8 +263,8 @@ const sections: Section[] = [
           <h3>Business transfers</h3>
           <p>
             If Buzlee is involved in a merger, acquisition, financing,
-            reorganization, or sale of assets, information may be transferred
-            as part of that transaction.
+            reorganization, or sale of assets, information may be transferred as
+            part of that transaction.
           </p>
         </div>
       </div>
@@ -279,8 +278,8 @@ const sections: Section[] = [
         <p>
           Buzlee does not track you across apps and websites owned by other
           companies. We do not use third-party advertising networks, do not
-          share your information with data brokers, and do not collect the
-          iOS Advertising Identifier (IDFA).
+          share your information with data brokers, and do not collect the iOS
+          Advertising Identifier (IDFA).
         </p>
         <p>
           Because Buzlee does not engage in tracking as defined by Apple's App
@@ -296,22 +295,22 @@ const sections: Section[] = [
     body: (
       <>
         <p>
-          Buzlee may send transactional messages, including account and
-          sign-in emails, business application updates, reminders for flyers
-          you've saved, changes to saved flyers, posts from businesses you
-          subscribe to, and support replies.
+          Buzlee may send transactional messages, including account and sign-in
+          emails, business application updates, reminders for flyers you've
+          saved, changes to saved flyers, posts from businesses you subscribe
+          to, and support replies.
         </p>
         <p>
           You can manage push and email notifications in the app under{" "}
           <strong>Profile → Notifications</strong>. Push notifications and
           emails can be turned on or off independently for three categories:
           Flyer Updates, Event Reminders, and Business Updates. Push
-          notifications also depend on the permission you grant in your
-          device's settings.
+          notifications also depend on the permission you grant in your device's
+          settings.
         </p>
         <p>
-          Some account, security, or transactional emails may still be sent
-          even if you have turned off optional notifications.
+          Some account, security, or transactional emails may still be sent even
+          if you have turned off optional notifications.
         </p>
       </>
     ),
@@ -323,8 +322,8 @@ const sections: Section[] = [
       <>
         <p>
           You can enable or disable device location access at any time through
-          your device settings. If location access is disabled, nearby
-          discovery and map features may be limited.
+          your device settings. If location access is disabled, nearby discovery
+          and map features may be limited.
         </p>
         <p>
           Business and flyer locations submitted by businesses may remain
@@ -341,9 +340,8 @@ const sections: Section[] = [
       <>
         <p>
           We keep information for as long as needed to provide Buzlee, maintain
-          accounts, comply with legal obligations, resolve disputes, enforce
-          our agreements, prevent abuse, and support legitimate business
-          operations.
+          accounts, comply with legal obligations, resolve disputes, enforce our
+          agreements, prevent abuse, and support legitimate business operations.
         </p>
         <p>
           If you delete your account, we will delete or de-identify your
@@ -353,8 +351,8 @@ const sections: Section[] = [
         </p>
         <p>
           Some public or business content may remain if it is associated with
-          active listings, legal records, analytics, backups, or another user
-          or business account.
+          active listings, legal records, analytics, backups, or another user or
+          business account.
         </p>
       </>
     ),
@@ -372,9 +370,8 @@ const sections: Section[] = [
         <p>Inside Buzlee, you can also:</p>
         <ul>
           <li>
-            Update your resident profile in{" "}
-            <strong>Profile → My Info</strong>, including your home town and
-            optional contact email
+            Update your resident profile in <strong>Profile → My Info</strong>,
+            including your home town and optional contact email
           </li>
           <li>
             Update your business profile under <strong>Business Profile</strong>
@@ -395,8 +392,8 @@ const sections: Section[] = [
         </ul>
         <p>
           To make a privacy request, email{" "}
-          <a href={mailto(PRIVACY_REQUEST_SUBJECT)}>{SUPPORT_EMAIL}</a> with
-          the subject line <strong>"Buzlee Privacy Request."</strong>
+          <a href={mailto(PRIVACY_REQUEST_SUBJECT)}>{SUPPORT_EMAIL}</a> with the
+          subject line <strong>"Buzlee Privacy Request."</strong>
         </p>
       </>
     ),
@@ -430,10 +427,9 @@ const sections: Section[] = [
     title: "Security",
     body: (
       <p>
-        We use reasonable administrative, technical, and organizational
-        measures to protect information. No method of transmission or storage
-        is completely secure, however, and we can't guarantee absolute
-        security.
+        We use reasonable administrative, technical, and organizational measures
+        to protect information. No method of transmission or storage is
+        completely secure, however, and we can't guarantee absolute security.
       </p>
     ),
   },
@@ -445,8 +441,8 @@ const sections: Section[] = [
         Buzlee is not intended for children under 13. We do not knowingly
         collect personal information from children under 13. Some flyers may
         also carry age restrictions set by the business that created them. If
-        you believe a child has provided personal information to Buzlee,
-        contact us at <a href={mailto()}>{SUPPORT_EMAIL}</a>.
+        you believe a child has provided personal information to Buzlee, contact
+        us at <a href={mailto()}>{SUPPORT_EMAIL}</a>.
       </p>
     ),
   },
@@ -455,11 +451,10 @@ const sections: Section[] = [
     title: "Third-party links and services",
     body: (
       <p>
-        Buzlee may include links to third-party websites, business pages,
-        social profiles, maps, or external event links provided by businesses.
-        We are not responsible for the privacy practices of third-party
-        services. Review their privacy policies before sharing information
-        with them.
+        Buzlee may include links to third-party websites, business pages, social
+        profiles, maps, or external event links provided by businesses. We are
+        not responsible for the privacy practices of third-party services.
+        Review their privacy policies before sharing information with them.
       </p>
     ),
   },
@@ -468,10 +463,10 @@ const sections: Section[] = [
     title: "Changes to this policy",
     body: (
       <p>
-        We may update this Privacy Policy from time to time. If we make
-        material changes, we may notify you in the app, by email, or by
-        updating the effective date above. Your continued use of Buzlee after
-        an update means you accept the updated policy.
+        We may update this Privacy Policy from time to time. If we make material
+        changes, we may notify you in the app, by email, or by updating the
+        effective date above. Your continued use of Buzlee after an update means
+        you accept the updated policy.
       </p>
     ),
   },
@@ -480,8 +475,8 @@ const sections: Section[] = [
     title: "Contact us",
     body: (
       <p>
-        For questions, requests, or concerns about this Privacy Policy,
-        contact <strong>Buzlee Support</strong> at{" "}
+        For questions, requests, or concerns about this Privacy Policy, contact{" "}
+        <strong>Buzlee Support</strong> at{" "}
         <a href={mailto()}>{SUPPORT_EMAIL}</a>.
       </p>
     ),
@@ -602,8 +597,8 @@ export default function TermsPage() {
             Privacy request or question?
           </h2>
           <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            Email Buzlee Support with the subject line "Buzlee Privacy
-            Request" and we'll get back to you.
+            Email Buzlee Support with the subject line "Buzlee Privacy Request"
+            and we'll get back to you.
           </p>
           <div className="mt-5 flex flex-col gap-3 sm:flex-row">
             <Button asChild>

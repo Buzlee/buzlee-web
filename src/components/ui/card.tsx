@@ -3,22 +3,18 @@ import type * as React from "react";
 
 import { cn } from "@/lib/utils";
 
-const cardVariants = cva(
-  "flex flex-col text-card-foreground",
-  {
-    variants: {
-      variant: {
-        default:
-          "gap-6 rounded-xl border bg-card py-6 shadow-sm",
-        flyer:
-          "gap-0 cursor-default overflow-hidden rounded-lg border border-border/50 bg-muted/30 py-0 shadow-none ring-0",
-      },
-    },
-    defaultVariants: {
-      variant: "default",
+const cardVariants = cva("flex flex-col text-card-foreground", {
+  variants: {
+    variant: {
+      default: "gap-6 rounded-xl border bg-card py-6 shadow-sm",
+      flyer:
+        "gap-0 cursor-default overflow-hidden rounded-lg border border-border/50 bg-muted/30 py-0 shadow-none ring-0",
     },
   },
-);
+  defaultVariants: {
+    variant: "default",
+  },
+});
 
 function Card({
   className,

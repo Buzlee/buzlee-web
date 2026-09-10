@@ -311,10 +311,7 @@ export default function SupportPage() {
           </p>
         </section>
 
-        <section
-          aria-labelledby="role-heading"
-          className="flex flex-col gap-6"
-        >
+        <section aria-labelledby="role-heading" className="flex flex-col gap-6">
           <SectionHeading
             id="role-heading"
             eyebrow="Start here"
