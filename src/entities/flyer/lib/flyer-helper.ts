@@ -1,6 +1,7 @@
 // PORTED FROM buzlee-app/src/entities/flyer/lib/flyer-helper.ts — keep in sync; see docs/admin-sync.md
 
 import {
+  addDaysLocal,
   addMonthsLocal,
   endOfLocalDay,
   parseDateLocal,
@@ -70,16 +71,45 @@ export function isFlyerLive(flyer: Flyer): boolean {
 
 const endOfLocalCalendarDay = endOfLocalDay;
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Whole local calendar days from `a` to `b` (DST-safe: compares local midnights). */
+function localDaysBetween(a: Date, b: Date): number {
+  return Math.round(
+    (startOfLocalDay(b).getTime() - startOfLocalDay(a).getTime()) / DAY_MS,
+  );
+}
+
+/**
+ * Latest start of a fixed-step series (daily = 1, weekly without BYDAY = 7)
+ * on or before `limit`, stepping by local calendar days so the wall-clock
+ * time survives DST transitions. Returns `firstStart` when `limit` precedes it.
+ */
+function latestFixedStepStartOnOrBefore(
+  firstStart: Date,
+  stepDays: number,
+  limit: Date,
+): Date {
+  if (limit <= firstStart) return firstStart;
+  let steps = Math.floor(localDaysBetween(firstStart, limit) / stepDays);
+  let candidate = addDaysLocal(firstStart, steps * stepDays);
+  while (candidate > limit && steps > 0) {
+    steps -= 1;
+    candidate = addDaysLocal(firstStart, steps * stepDays);
+  }
+  return candidate;
+}
+
+/** Earliest BYDAY occurrence on/after `baseStart` (not the first code in list order). */
 function firstWeeklyOccurrenceStart(baseStart: Date, weekdays: number[]): Date {
-  const first = new Date(baseStart);
+  let earliest: Date | null = null;
   for (const day of weekdays) {
     const dayDelta = (day - baseStart.getDay() + 7) % 7;
-    const candidate = new Date(baseStart);
-    candidate.setDate(baseStart.getDate() + dayDelta);
-    if (candidate >= baseStart) return candidate;
+    const candidate = addDaysLocal(baseStart, dayDelta);
+    if (candidate >= baseStart && (!earliest || candidate < earliest))
+      earliest = candidate;
   }
-  first.setDate(first.getDate() + 7);
-  return first;
+  return earliest ?? addDaysLocal(baseStart, 7);
 }
 
 function getWeeklyOccurrenceCandidates(
@@ -116,7 +146,7 @@ function getWeeklyOccurrenceCandidates(
       if (candidate >= baseStart && candidate <= reference) {
         if (!previous || candidate > previous) previous = candidate;
       }
-      if (candidate >= reference) {
+      if (candidate >= baseStart && candidate >= reference) {
         if (!next || candidate < next) next = candidate;
       }
     }
@@ -167,10 +197,11 @@ function lastOccurrenceStartBefore(
   }
 
   if (freq === "daily" || freq === "weekly") {
-    const stepMs =
-      freq === "daily" ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
-    const steps = Math.floor((limit.getTime() - firstStart.getTime()) / stepMs);
-    return new Date(firstStart.getTime() + Math.max(0, steps) * stepMs);
+    return latestFixedStepStartOnOrBefore(
+      firstStart,
+      freq === "daily" ? 1 : 7,
+      limit,
+    );
   }
 
   // monthly: walk back from the month of `limit` until we are on/before it
@@ -220,8 +251,7 @@ function computeOccurrenceWindow(
   let occurrence: OccurrenceWindow;
 
   if (freq === "daily" || freq === "weekly") {
-    const stepMs =
-      freq === "daily" ? 24 * 60 * 60 * 1000 : 7 * 24 * 60 * 60 * 1000;
+    const stepDays = freq === "daily" ? 1 : 7;
 
     let resolved: OccurrenceWindow | null = null;
     if (freq === "weekly" && weeklyByDays.length > 0) {
@@ -244,19 +274,17 @@ function computeOccurrenceWindow(
     if (resolved) {
       occurrence = resolved;
     } else {
-      let occurrenceStart = firstStart;
-      if (reference.getTime() > firstStart.getTime()) {
-        const steps = Math.floor(
-          (reference.getTime() - firstStart.getTime()) / stepMs,
-        );
-        occurrenceStart = new Date(firstStart.getTime() + steps * stepMs);
-      }
+      let occurrenceStart = latestFixedStepStartOnOrBefore(
+        firstStart,
+        stepDays,
+        reference,
+      );
       occurrence = buildOccurrenceWindowFromDuration(
         occurrenceStart,
         baseDurationMs,
       );
       if (occurrence.end < reference) {
-        occurrenceStart = new Date(occurrenceStart.getTime() + stepMs);
+        occurrenceStart = addDaysLocal(occurrenceStart, stepDays);
         occurrence = buildOccurrenceWindowFromDuration(
           occurrenceStart,
           baseDurationMs,
