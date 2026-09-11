@@ -63,7 +63,10 @@ export function formatLongDate(iso: string | null | undefined): string {
 export function initialsFrom(value: string | null | undefined): string {
   const source = value?.trim() ?? "";
   if (!source) return "?";
-  const words = source.split(/[\s@._-]+/).filter(Boolean);
+  // Symbol-only words ("&", "+") never become initials: "Juniper & Vine" → "JV".
+  const words = source
+    .split(/[\s@._-]+/)
+    .filter((word) => /[\p{L}\p{N}]/u.test(word));
   const first = words[0]?.[0] ?? "";
   const second = words.length > 1 ? (words[1]?.[0] ?? "") : "";
   return (first + second).toUpperCase() || "?";

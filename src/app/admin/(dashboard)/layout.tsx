@@ -58,7 +58,9 @@ export default async function AdminDashboardLayout({
           userEmail={user.email ?? null}
           userName={displayNameFrom(user.user_metadata)}
         />
-        <main className="flex min-h-svh flex-1 flex-col bg-background">
+        {/* min-w-0: truncated rows must shrink with the window instead of
+            widening the page past the viewport. */}
+        <main className="flex min-h-svh min-w-0 flex-1 flex-col bg-background">
           {children}
         </main>
       </SidebarProvider>

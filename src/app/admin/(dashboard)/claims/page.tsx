@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { ClaimsScreen } from "@/features/admin/claims/claims-screen";
 import { PageHeader } from "@/features/admin/shell/page-header";
 
@@ -8,7 +9,9 @@ export default function AdminClaimsPage() {
   return (
     <>
       <PageHeader title="Claims" />
-      <ClaimsScreen />
+      <Suspense>
+        <ClaimsScreen />
+      </Suspense>
     </>
   );
 }

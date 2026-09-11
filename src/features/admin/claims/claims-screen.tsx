@@ -8,7 +8,8 @@ import {
   UserCheck,
 } from "lucide-react";
 import Link from "next/link";
-import { useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -102,6 +103,10 @@ function matchesSearch(search: string, ...fields: (string | null)[]): boolean {
 
 function reviewHref(businessId: string): string {
   return `/admin/businesses/review?id=${businessId}`;
+}
+
+function claimsUrl(claimId: string | null): string {
+  return claimId ? `/admin/claims?id=${claimId}` : "/admin/claims";
 }
 
 /** Automated trust signal: claimant email domain vs. business email. */
@@ -267,11 +272,13 @@ function ClaimPanel({
  * Claims list with Pending / Approved / Declined filter — the history view the
  * Inbox omits. Row click opens a side panel with the full request, the domain
  * signal, and (for decided claims) the decision date and decline reason.
+ * `?id=` deep-links straight to one claim's panel (Inbox rows + "Review now").
  */
 export function ClaimsScreen() {
+  const urlId = useSearchParams().get("id");
   const [filter, setFilter] = useState<BusinessClaimStatus>("pending");
   const [search, setSearch] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(urlId);
   const [claimAction, setClaimAction] = useState<ClaimAction | null>(null);
 
   // One "all" fetch: claims are low-volume, and it gives per-status counts for
@@ -279,6 +286,23 @@ export function ClaimsScreen() {
   const { data: claims, isLoading } = useBusinessClaims();
   const approveClaim = useApproveBusinessClaim();
   const rejectClaim = useRejectBusinessClaim();
+
+  // Open a deep-linked claim under its own status tab. Applied once per id so
+  // deciding it here doesn't yank the list to the Approved / Declined tab.
+  const appliedDeepLink = useRef<string | null>(null);
+  useEffect(() => {
+    if (!urlId || !claims || appliedDeepLink.current === urlId) return;
+    appliedDeepLink.current = urlId;
+    const target = claims.find((claim) => claim.id === urlId);
+    if (!target) return;
+    setFilter(target.status);
+    setSelectedId(target.id);
+  }, [urlId, claims]);
+
+  function select(claimId: string | null) {
+    setSelectedId(claimId);
+    window.history.replaceState(null, "", claimsUrl(claimId));
+  }
 
   const counts = useMemo(() => {
     const result: Record<BusinessClaimStatus, number> = {
@@ -325,7 +349,7 @@ export function ClaimsScreen() {
 
   function changeFilter(next: BusinessClaimStatus) {
     setFilter(next);
-    setSelectedId(null);
+    select(null);
   }
 
   function handleApproveClaim() {
@@ -415,7 +439,7 @@ export function ClaimsScreen() {
                     )}
                     key={claim.id}
                     onClick={() =>
-                      setSelectedId(claim.id === selectedId ? null : claim.id)
+                      select(claim.id === selectedId ? null : claim.id)
                     }
                   >
                     <TableCell>

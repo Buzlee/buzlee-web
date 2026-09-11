@@ -1,5 +1,6 @@
 import { Plus } from "lucide-react";
 import Link from "next/link";
+import { Suspense } from "react";
 import { Button } from "@/components/ui/button";
 import { BusinessesScreen } from "@/features/admin/businesses/businesses-screen";
 import { PageHeader } from "@/features/admin/shell/page-header";
@@ -20,7 +21,9 @@ export default function AdminBusinessesPage() {
         }
         title="Businesses"
       />
-      <BusinessesScreen />
+      <Suspense>
+        <BusinessesScreen />
+      </Suspense>
     </>
   );
 }

@@ -90,6 +90,9 @@ provenance header added.
 | `src/features/flyer-wizard/model/wizard-api.ts` | same | trimmed — no date/time sheet, no `saveAndExit` / `discardLocal`; `exit()` added |
 | `src/features/flyer-wizard/model/use-flyer-wizard.ts` | same | see "Web adaptations" |
 | `src/features/flyer-wizard/model/use-flyer-wizard-submit.ts` | same | see "Web adaptations" |
+| `src/features/admin-inbox/model/triage-queue.ts` | `src/features/admin/inbox/model/triage-queue.ts` | verbatim + `// Web fix:` web hrefs (`/admin/businesses/review?id=`, `/admin/claims?id=`) and a contact-email fallback for the claimant title; `biome-ignore` on the `then` field |
+| `src/features/admin-inbox/model/use-triage-queue.ts` | same (under `features/admin/inbox`) | verbatim |
+| `src/features/admin-inbox/model/use-triage-store.ts` | same (under `features/admin/inbox`) | web adaptation — module store + `useSyncExternalStore` instead of Zustand; same `useTriageStore(selector)` shape, session-only (reload resets) |
 
 Deliberately **not** ported: `entities/business-claim/api/use-business-claim.ts`
 (RN/owner-side hooks) — replaced by the web-only
@@ -240,6 +243,13 @@ model/types.ts and used for the sidebar nav counts.
   Mobile counterpart is `app/(admin-detail)/claims.tsx` (list only; tapping
   a row opens `claim-review/[id]`) — both read the same columns
   (`reviewed_at`, `rejection_reason`); no data-layer change was needed.
+- `src/features/admin/inbox/**` — web port of the mobile Inbox
+  (`app/(admin)/index.tsx` + `features/admin-inbox`): "Next up" card over the
+  merged triage queue (Review now / Skip, Return and S shortcuts), grouped
+  queue rows that only navigate (claims open `/admin/claims?id=`, which
+  deep-links the claim panel), quiet "Live on Buzlee" totals. UI is
+  web-specific (`ui/`); the triage model is ported (table above). The mobile
+  `TriageStrip` on review screens is not ported yet.
 - `CLAIM_DECLINE_REASONS` lives in `entities/admin/model/moderation.ts` in
   both repos (lifted 2026-09-10 from web `inbox-screen` and mobile
   `claim-review`). Keep the four strings identical across repos — the

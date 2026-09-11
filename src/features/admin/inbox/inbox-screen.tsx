@@ -1,344 +1,304 @@
 "use client";
 
-import { CheckCircle2, ChevronRight, MoreHorizontal } from "lucide-react";
+import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import Link from "next/link";
-import { useState } from "react";
-import { toast } from "sonner";
+import { useRouter } from "next/navigation";
+import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
-import type { AdminBusinessSummary } from "@/entities/admin";
-import {
-  CLAIM_DECLINE_REASONS,
   claimDomainMatch,
   useAdminBusinesses,
   useAdminResidents,
   useAdminStatusCounts,
 } from "@/entities/admin";
-import type { BusinessClaimWithBusiness } from "@/entities/business-claim";
-import {
-  useApproveBusinessClaim,
-  useBusinessClaims,
-  useRejectBusinessClaim,
-} from "@/entities/business-claim";
+import { useBusinessClaims } from "@/entities/business-claim";
 import { DomainPill } from "@/features/admin/components/domain-pill";
-import { EmptyState } from "@/features/admin/components/empty-state";
-import { InitialsAvatar } from "@/features/admin/components/initials-avatar";
-import { TableSkeleton } from "@/features/admin/components/table-skeleton";
-import { ConfirmDialog } from "@/features/admin/dialogs/confirm-dialog";
-import { RejectDialog } from "@/features/admin/dialogs/reject-dialog";
-import { formatRelativeTime, ownerLabel } from "@/features/admin/lib/format";
+import { formatRelativeTime } from "@/features/admin/lib/format";
+import { cn } from "@/lib/utils";
+import { businessTriageItem, claimTriageItem } from "./model/triage-queue";
+import { useTriageQueue } from "./model/use-triage-queue";
+import { LiveStats } from "./ui/live-stats";
+import { NextUpCard } from "./ui/next-up-card";
+import {
+  INBOX_SURFACE,
+  QueueAvatar,
+  QueueRow,
+  QueueSection,
+} from "./ui/queue-list";
+import { useInboxShortcuts } from "./ui/use-inbox-shortcuts";
 
-type ClaimAction = {
-  type: "approve" | "decline";
-  claim: BusinessClaimWithBusiness;
-};
-
-function reviewHref(businessId: string): string {
-  return `/admin/businesses/review?id=${businessId}`;
+function byOldest<T extends { created_at: string }>(a: T, b: T): number {
+  return a.created_at.localeCompare(b.created_at);
 }
 
-function SectionCard({
-  title,
-  count,
-  seeAllHref,
-  children,
-}: {
-  title: string;
-  count: number;
-  seeAllHref?: string;
-  children: React.ReactNode;
-}) {
+const SKELETON_ROWS = ["s1", "s2", "s3"] as const;
+
+/** Placeholder with the hero + one group's geometry, so nothing jumps. */
+function InboxSkeleton() {
   return (
-    <section className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-      <header className="flex items-center justify-between border-b border-border px-5 py-3">
-        <h2 className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
-          {title} · <span className="text-foreground">{count}</span>
-        </h2>
-        {seeAllHref ? (
-          <Link
-            className="text-[13px] font-medium text-muted-foreground transition-colors hover:text-foreground"
-            href={seeAllHref}
-          >
-            See all
-          </Link>
-        ) : null}
-      </header>
-      {children}
-    </section>
+    // <output> carries the implicit status role for the loading announcement.
+    <output className="flex flex-col gap-9">
+      <span className="sr-only">Loading inbox…</span>
+      <div className="flex flex-col gap-2.5">
+        <Skeleton className="h-5 w-40" />
+        <div className={INBOX_SURFACE}>
+          <div className="flex items-center gap-4 p-5">
+            <Skeleton className="size-14 rounded-[13px]" />
+            <div className="flex flex-1 flex-col gap-2">
+              <Skeleton className="h-4 w-52" />
+              <Skeleton className="h-3.5 w-36" />
+            </div>
+          </div>
+          <div className="flex items-center justify-between border-t border-border/60 px-5 py-3.5">
+            <Skeleton className="h-3.5 w-32" />
+            <Skeleton className="h-10 w-36 rounded-full" />
+          </div>
+        </div>
+      </div>
+      <div className="flex flex-col gap-2.5">
+        <Skeleton className="h-5 w-44" />
+        <div className={INBOX_SURFACE}>
+          {SKELETON_ROWS.map((key, index) => (
+            <div
+              className={cn(
+                "flex min-h-16 items-center gap-3 px-4 py-3",
+                index > 0 && "border-t border-border/40",
+              )}
+              key={key}
+            >
+              <Skeleton className="size-10 rounded-[10px]" />
+              <div className="flex flex-1 flex-col gap-2">
+                <Skeleton className="h-3.5 w-44" />
+                <Skeleton className="h-3 w-28" />
+              </div>
+              <Skeleton className="h-3 w-12" />
+            </div>
+          ))}
+        </div>
+      </div>
+    </output>
   );
 }
 
-function ReviewButton({ href }: { href: string }) {
+/** The queue is the whole job — clearing it gets a calm, centered moment. */
+function CaughtUp() {
   return (
-    <Link
-      className="inline-flex h-8 items-center gap-1 rounded-md border border-border bg-card px-3 text-[13px] font-semibold text-foreground transition-colors hover:bg-secondary"
-      href={href}
-    >
-      Review
-      <ChevronRight className="size-3.5" />
-    </Link>
-  );
-}
-
-function ApprovalRow({ business }: { business: AdminBusinessSummary }) {
-  const meta = [business.category_name, business.town_name]
-    .filter(Boolean)
-    .join(" · ");
-
-  return (
-    <li className="flex items-center gap-4 px-5 py-3">
-      <InitialsAvatar imageUrl={business.logo_url} name={business.name} />
-      <span className="w-60 truncate text-sm font-semibold text-foreground">
-        {business.name}
+    <div className="flex flex-col items-center px-6 pt-10 pb-4 text-center">
+      <span className="flex size-16 items-center justify-center rounded-full bg-action-checked-in-soft">
+        <CheckCircle2
+          aria-hidden
+          className="size-8 text-action-checked-in"
+          strokeWidth={2}
+        />
       </span>
-      <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
-        {meta || "—"}
-      </span>
-      <span className="hidden w-28 text-sm text-muted-foreground lg:block">
-        {ownerLabel(business.user_id)}
-      </span>
-      <span className="w-20 text-right text-sm whitespace-nowrap text-muted-foreground">
-        {formatRelativeTime(business.created_at)}
-      </span>
-      <ReviewButton href={reviewHref(business.id)} />
-    </li>
-  );
-}
-
-function ClaimRow({
-  claim,
-  onAction,
-}: {
-  claim: BusinessClaimWithBusiness;
-  onAction: (action: ClaimAction) => void;
-}) {
-  const match = claimDomainMatch({
-    claimEmail: claim.contact_email,
-    businessEmail: claim.business?.email ?? null,
-    businessWebsite: null,
-  });
-
-  return (
-    <li className="flex items-center gap-4 px-5 py-3">
-      <InitialsAvatar
-        name={claim.contact_name ?? claim.contact_email}
-        rounded="rounded-full"
-      />
-      <span className="w-60 truncate text-sm font-semibold text-foreground">
-        {claim.contact_name ?? claim.contact_email ?? "Unknown claimant"}
-      </span>
-      <span className="min-w-0 flex-1 truncate text-sm text-muted-foreground">
-        Claiming{" "}
-        <span className="font-medium text-foreground">
-          {claim.business?.name ?? "a business"}
-        </span>
-      </span>
-      <span className="hidden lg:block">
-        <DomainPill status={match.status} />
-      </span>
-      <span className="w-20 text-right text-sm whitespace-nowrap text-muted-foreground">
-        {formatRelativeTime(claim.created_at)}
-      </span>
-      <ReviewButton href={reviewHref(claim.business_id)} />
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <Button
-            aria-label={`Actions for claim by ${claim.contact_name ?? claim.contact_email ?? "claimant"}`}
-            size="icon-sm"
-            type="button"
-            variant="ghost"
-          >
-            <MoreHorizontal />
-          </Button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end">
-          <DropdownMenuItem
-            onSelect={() => onAction({ type: "approve", claim })}
-          >
-            Approve claim…
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onSelect={() => onAction({ type: "decline", claim })}
-            variant="destructive"
-          >
-            Decline claim…
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </li>
-  );
-}
-
-function StatBlock({ value, label }: { value: string; label: string }) {
-  return (
-    <div className="flex flex-col items-end px-6 first:pl-0 last:pr-0">
-      <span className="text-[22px] font-bold tracking-tight text-foreground tabular-nums">
-        {value}
-      </span>
-      <span className="text-xs text-muted-foreground">{label}</span>
+      <h2 className="mt-5 text-[22px] leading-7 font-semibold tracking-[-0.02em] text-foreground">
+        You&apos;re all caught up
+      </h2>
+      <p className="mt-2 max-w-sm text-[15px] leading-5.5 text-muted-foreground">
+        No businesses or claims are waiting on you. New submissions show up here
+        the moment they arrive.
+      </p>
+      <Button
+        asChild
+        className="mt-6 h-9 rounded-full px-4 text-[13px] font-semibold"
+        variant="outline"
+      >
+        <Link href="/admin/flyers">Browse live flyers</Link>
+      </Button>
     </div>
   );
 }
 
-export function InboxScreen() {
-  const [claimAction, setClaimAction] = useState<ClaimAction | null>(null);
-  const approveClaim = useApproveBusinessClaim();
-  const rejectClaim = useRejectBusinessClaim();
-  const { data: statusCounts } = useAdminStatusCounts();
-  const { data: pendingBusinesses } = useAdminBusinesses({ status: "pending" });
-  const { data: pendingClaims } = useBusinessClaims("pending");
-  const { data: residents } = useAdminResidents();
-
-  const approvals = [...(pendingBusinesses ?? [])].sort((a, b) =>
-    a.created_at.localeCompare(b.created_at),
+function InboxError({
+  message,
+  onRetry,
+}: {
+  message: string | undefined;
+  onRetry: () => void;
+}) {
+  return (
+    <div
+      className={cn(INBOX_SURFACE, "flex items-start gap-3 p-5")}
+      role="alert"
+    >
+      <AlertTriangle
+        aria-hidden
+        className="mt-0.5 size-5 shrink-0 text-destructive"
+      />
+      <div className="min-w-0 flex-1">
+        <p className="text-[15px] font-semibold text-foreground">
+          Couldn&apos;t load your inbox
+        </p>
+        {message ? (
+          <p className="mt-0.5 text-[13px] wrap-break-word text-muted-foreground">
+            {message}
+          </p>
+        ) : null}
+      </div>
+      <Button
+        className="rounded-full"
+        onClick={onRetry}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        Try again
+      </Button>
+    </div>
   );
-  const claims = pendingClaims ?? [];
-  const totalPending = approvals.length + claims.length;
-  const loading =
-    pendingBusinesses === undefined || pendingClaims === undefined;
+}
 
-  function handleApproveClaim() {
-    const action = claimAction;
-    if (!action || approveClaim.isPending) return;
-    approveClaim.mutate(action.claim.id, {
-      onSuccess: () => {
-        toast.success(
-          `Approved claim — ${action.claim.business?.name ?? "business"} now has an owner`,
-        );
-        setClaimAction(null);
-      },
-      onError: (error) => toast.error(`Approve failed: ${error.message}`),
-    });
-  }
+/**
+ * Admin Inbox (web port of buzlee-app `app/(admin)/index.tsx`): one
+ * prioritized review queue — pending businesses and claim requests — led by
+ * a "Next up" card, with live totals demoted to a quiet strip. Rows only
+ * navigate; decisions happen on the business review / claim panel.
+ */
+export function InboxScreen() {
+  const router = useRouter();
+  const businessesQuery = useAdminBusinesses({ status: "pending" });
+  const claimsQuery = useBusinessClaims("pending");
+  const { data: statusCounts } = useAdminStatusCounts();
+  const { data: residents } = useAdminResidents();
+  const triage = useTriageQueue();
 
-  function handleDeclineClaim(reason: string) {
-    const action = claimAction;
-    if (!action || rejectClaim.isPending) return;
-    rejectClaim.mutate(
-      { claimId: action.claim.id, reason },
-      {
-        onSuccess: () => {
-          toast.success("Claim declined");
-          setClaimAction(null);
-        },
-        onError: (error) => toast.error(`Decline failed: ${error.message}`),
-      },
-    );
+  // Oldest first — work the queue in arrival order.
+  const businesses = useMemo(
+    () => [...(businessesQuery.data ?? [])].sort(byOldest),
+    [businessesQuery.data],
+  );
+  const claims = useMemo(
+    () => [...(claimsQuery.data ?? [])].sort(byOldest),
+    [claimsQuery.data],
+  );
+
+  const loading = businessesQuery.isPending || claimsQuery.isPending;
+  const failed =
+    (businessesQuery.isError && !businessesQuery.data) ||
+    (claimsQuery.isError && !claimsQuery.data);
+  const needsReview = businesses.length + claims.length;
+
+  useInboxShortcuts(!loading && triage.nextUp !== null, {
+    onReview: () => {
+      if (triage.nextUp) router.push(triage.nextUp.href);
+    },
+    onSkip: triage.skipCurrent,
+  });
+
+  function ageLabel(id: string, createdAt: string): string {
+    return triage.isSkipped(id) ? "Skipped" : formatRelativeTime(createdAt);
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
-      <div className="flex flex-wrap items-end justify-between gap-6">
-        <div>
-          <div className="flex items-baseline gap-3">
-            <span className="text-[64px] leading-none font-extrabold tracking-tight text-primary tabular-nums">
-              {loading ? "—" : totalPending}
-            </span>
-            <span className="text-lg font-semibold text-foreground">
-              need your review
-            </span>
-          </div>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {approvals.length} business approval
-            {approvals.length === 1 ? "" : "s"} · {claims.length} claim request
-            {claims.length === 1 ? "" : "s"}
-          </p>
-        </div>
-        <div className="flex divide-x divide-border">
-          <StatBlock
-            label="approved businesses"
-            value={String(statusCounts?.businesses.approved ?? "—")}
-          />
-          <StatBlock
-            label="live flyers"
-            value={String(statusCounts?.flyers.live ?? "—")}
-          />
-          <StatBlock
-            label="residents"
-            value={residents ? String(residents.length) : "—"}
-          />
-        </div>
-      </div>
-
-      {loading ? (
-        <div className="overflow-hidden rounded-xl border border-border bg-card shadow-sm">
-          <TableSkeleton rows={5} />
-        </div>
-      ) : totalPending === 0 ? (
-        <div className="rounded-xl border border-border bg-card shadow-sm">
-          <EmptyState
-            caption="No pending businesses or claim requests right now."
-            icon={CheckCircle2}
-            iconClassName="bg-[hsl(var(--action-checked-in-soft))] text-[hsl(var(--action-checked-in))]"
-            title="You're all caught up"
-          />
-        </div>
+    // Anchored to the page title's leading edge (like every admin page); the
+    // max width keeps rows a comfortable reading length on wide screens.
+    <div className="flex w-full max-w-3xl flex-col gap-9 px-6 pt-8 pb-16">
+      {failed ? (
+        <InboxError
+          message={(businessesQuery.error ?? claimsQuery.error)?.message}
+          onRetry={() => {
+            void businessesQuery.refetch();
+            void claimsQuery.refetch();
+          }}
+        />
+      ) : loading ? (
+        <InboxSkeleton />
+      ) : needsReview === 0 ? (
+        <CaughtUp />
       ) : (
         <>
-          {approvals.length > 0 ? (
-            <SectionCard
-              count={approvals.length}
-              seeAllHref="/admin/businesses"
+          <NextUpCard onSkip={triage.skipCurrent} state={triage} />
+
+          {businesses.length > 0 ? (
+            <QueueSection
+              count={businesses.length}
+              id="inbox-approvals"
+              seeAllHref="/admin/businesses?status=pending"
               title="Business approvals"
             >
-              <ul className="divide-y divide-border">
-                {approvals.map((business) => (
-                  <ApprovalRow business={business} key={business.id} />
-                ))}
-              </ul>
-            </SectionCard>
+              {businesses.map((business) => (
+                <QueueRow
+                  age={ageLabel(business.id, business.created_at)}
+                  href={businessTriageItem(business).href}
+                  key={business.id}
+                  leading={
+                    <QueueAvatar
+                      imageUrl={business.logo_url}
+                      name={business.name}
+                    />
+                  }
+                  meta={
+                    [business.category_name, business.town_name]
+                      .filter(Boolean)
+                      .join(" · ") || "Uncategorized"
+                  }
+                  title={business.name}
+                />
+              ))}
+            </QueueSection>
           ) : null}
+
           {claims.length > 0 ? (
-            <SectionCard
+            <QueueSection
               count={claims.length}
+              id="inbox-claims"
               seeAllHref="/admin/claims"
               title="Claim requests"
             >
-              <ul className="divide-y divide-border">
-                {claims.map((claim) => (
-                  <ClaimRow
-                    claim={claim}
+              {claims.map((claim) => {
+                const item = claimTriageItem(claim);
+                return (
+                  <QueueRow
+                    accessory={
+                      <DomainPill
+                        status={
+                          claimDomainMatch({
+                            claimEmail: claim.contact_email,
+                            businessEmail: claim.business?.email ?? null,
+                            businessWebsite: null,
+                          }).status
+                        }
+                      />
+                    }
+                    age={ageLabel(claim.id, claim.created_at)}
+                    href={item.href}
                     key={claim.id}
-                    onAction={setClaimAction}
+                    leading={
+                      <QueueAvatar
+                        name={item.title}
+                        shape="circle"
+                        tone="accent"
+                      />
+                    }
+                    meta={`Claiming ${claim.business?.name ?? "a business"}`}
+                    title={item.title}
                   />
-                ))}
-              </ul>
-            </SectionCard>
+                );
+              })}
+            </QueueSection>
           ) : null}
         </>
       )}
 
-      <ConfirmDialog
-        ctaLabel="Approve claim"
-        description={
-          claimAction
-            ? `Assigns ownership of ${claimAction.claim.business?.name ?? "this business"} to ${claimAction.claim.contact_name ?? claimAction.claim.contact_email ?? "the claimant"} and notifies them by email.`
-            : undefined
-        }
-        onConfirm={handleApproveClaim}
-        onOpenChange={(open) => {
-          if (!open) setClaimAction(null);
-        }}
-        open={claimAction?.type === "approve"}
-        pending={approveClaim.isPending}
-        title={`Approve claim for ${claimAction?.claim.business?.name ?? "business"}?`}
-      />
-      <RejectDialog
-        ctaLabel="Decline claim"
-        description="The claimant keeps access to nothing; the business stays unclaimed."
-        onConfirm={handleDeclineClaim}
-        onOpenChange={(open) => {
-          if (!open) setClaimAction(null);
-        }}
-        open={claimAction?.type === "decline"}
-        pending={rejectClaim.isPending}
-        reasons={CLAIM_DECLINE_REASONS}
-        title={`Decline claim for ${claimAction?.claim.business?.name ?? "business"}?`}
+      <LiveStats
+        stats={[
+          {
+            label: "Businesses",
+            value: statusCounts?.businesses.approved,
+            href: "/admin/businesses?status=approved",
+          },
+          {
+            label: "Live flyers",
+            value: statusCounts ? (statusCounts.flyers.live ?? 0) : undefined,
+            href: "/admin/flyers",
+          },
+          {
+            label: "Residents",
+            value: residents?.length,
+            href: "/admin/residents",
+          },
+        ]}
       />
     </div>
   );

@@ -1,7 +1,7 @@
 "use client";
 
 import { ChevronRight, Store } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
@@ -34,7 +34,18 @@ import {
   type StatusChipVariant,
 } from "@/features/admin/shell/status-chip";
 
-type BusinessFilter = "pending" | "approved" | "rejected" | "deleted";
+const BUSINESS_FILTERS = [
+  "pending",
+  "approved",
+  "rejected",
+  "deleted",
+] as const;
+
+type BusinessFilter = (typeof BUSINESS_FILTERS)[number];
+
+function isBusinessFilter(value: string | null): value is BusinessFilter {
+  return BUSINESS_FILTERS.some((filter) => filter === value);
+}
 
 const STATUS_TO_CHIP: Record<
   "pending" | "approved" | "rejected",
@@ -53,7 +64,11 @@ function matchesSearch(search: string, ...fields: (string | null)[]): boolean {
 
 export function BusinessesScreen() {
   const router = useRouter();
-  const [filter, setFilter] = useState<BusinessFilter>("pending");
+  // `?status=` picks the opening tab (Inbox links, mobile parity).
+  const statusParam = useSearchParams().get("status");
+  const [filter, setFilter] = useState<BusinessFilter>(
+    isBusinessFilter(statusParam) ? statusParam : "pending",
+  );
   const [search, setSearch] = useState("");
 
   const { data: statusCounts } = useAdminStatusCounts();

@@ -61,6 +61,18 @@
   --color-sidebar-ring: hsl(var(--sidebar-ring));
 }
 
+@theme {
+  /* Content swap (e.g. admin Inbox "Next up" skip): opacity-only, <150ms, so
+     it stops content from popping without slowing a repeated action. */
+  --animate-fade-in: fade-in 150ms cubic-bezier(0.23, 1, 0.32, 1);
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+}
+
 @layer base {
   :root {
     --radius: 0.5rem;
