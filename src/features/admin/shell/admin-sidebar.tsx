@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/sidebar";
 import { useAdminResidents, useAdminStatusCounts } from "@/entities/admin";
 import { usePendingClaimsCount } from "@/entities/business-claim";
+import { DISCOVERY_PATH } from "@/features/admin/discovery/lib/discovery-href";
 import { supabase } from "@/shared/lib/supabase";
 
 type NavCounts = {
@@ -93,6 +94,12 @@ const NAV_ITEMS = [
     icon: Users,
     countKey: "residents",
   },
+] as const;
+
+/** Mobile parity: the app's admin Tools rows (dev tools intentionally omitted). */
+const TOOL_ITEMS = [
+  { href: "/admin/tools/batch-upload", label: "Batch upload", icon: Upload },
+  { href: DISCOVERY_PATH, label: "Map", icon: MapIcon },
 ] as const;
 
 function initialsFrom(name: string | null, email: string | null): string {
@@ -180,30 +187,20 @@ export function AdminSidebar({
           <SidebarGroupLabel>Tools</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  aria-disabled
-                  className="pointer-events-none opacity-50"
-                >
-                  <a href="#batch-upload">
-                    <Upload />
-                    <span>Batch upload</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
-              <SidebarMenuItem>
-                <SidebarMenuButton
-                  asChild
-                  aria-disabled
-                  className="pointer-events-none opacity-50"
-                >
-                  <a href="#map">
-                    <MapIcon />
-                    <span>Map</span>
-                  </a>
-                </SidebarMenuButton>
-              </SidebarMenuItem>
+              {TOOL_ITEMS.map((item) => (
+                <SidebarMenuItem key={item.href}>
+                  <SidebarMenuButton
+                    asChild
+                    className="data-[active=true]:bg-secondary data-[active=true]:font-semibold"
+                    isActive={pathname.startsWith(item.href)}
+                  >
+                    <Link href={item.href}>
+                      <item.icon />
+                      <span>{item.label}</span>
+                    </Link>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

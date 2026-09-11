@@ -1,8 +1,9 @@
 // PORTED FROM buzlee-app/src/entities/flyer/api/use-flyer.ts — keep in sync; see docs/admin-sync.md
 // Web trim: the query-key factory plus `useFlyer` / `useFlyerTags` (the flyer
-// wizard's edit-mode reads). The remaining hooks in the buzlee-app original
-// are resident/business-side and RN-specific.
-import { useQuery } from "@tanstack/react-query";
+// wizard's edit-mode reads) and `useFlyers` (admin map + feed). The remaining
+// hooks in the buzlee-app original are resident/business-side and RN-specific.
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
+import type { FlyerFilters } from "../model/types";
 import * as queries from "./flyer-queries";
 import * as tagQueries from "./flyer-tag-queries";
 
@@ -44,6 +45,23 @@ export function useFlyer(id: string) {
     queryKey: flyerKeys.detail(id),
     queryFn: () => queries.fetchFlyer(id),
     enabled: !!id,
+  });
+}
+
+/**
+ * Fetch flyers with filters
+ * Uses shorter staleTime for live queries to ensure residents see fresh data
+ */
+export function useFlyers(filters?: FlyerFilters) {
+  const filtersKey = JSON.stringify(filters ?? {});
+
+  return useQuery({
+    queryKey: flyerKeys.list(filtersKey),
+    queryFn: () => queries.fetchFlyers(filters),
+    // Live flyer queries need fresher data (30 seconds) for resident views
+    staleTime: filters?.isLive ? 1000 * 30 : undefined,
+    // Keep previous data visible while new filter results load to prevent flickering
+    placeholderData: keepPreviousData,
   });
 }
 

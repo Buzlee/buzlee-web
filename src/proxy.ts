@@ -5,9 +5,11 @@
  *   /admin request 404s — the dashboard is intentionally inert there.
  * - Session refresh: re-issues expired Supabase auth cookies on each
  *   /admin request (@supabase/ssr middleware pattern).
- * - Auth gate: unauthenticated requests are sent to /admin/sign-in.
+ * - Auth gate: unauthenticated page requests are sent to /admin/sign-in.
  *   Role enforcement (profiles.role === 'admin') happens in the
  *   /admin/(dashboard) layout + RLS; the proxy only checks for a user.
+ *   /admin/api/* route handlers enforce auth + role themselves and answer
+ *   with 401/403 instead of a redirect.
  *
  * The matcher guarantees non-/admin routes are never touched.
  */
@@ -18,6 +20,7 @@ import type { Database } from "@/types/database";
 
 const SIGN_IN_PATH = "/admin/sign-in";
 const AUTH_CALLBACK_PATH = "/admin/auth/callback";
+const API_PATH_PREFIX = "/admin/api/";
 
 export default async function proxy(request: NextRequest) {
   const config = getSupabaseConfig();
@@ -58,8 +61,12 @@ export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
   const isAuthRoute =
     pathname === SIGN_IN_PATH || pathname === AUTH_CALLBACK_PATH;
+  // Route handlers under /admin/api/* are fetched by the dashboard, not
+  // navigated to — they return 401/403 themselves (a redirect to the sign-in
+  // page would be followed by fetch() and read as a 200 HTML body).
+  const isApiRoute = pathname.startsWith(API_PATH_PREFIX);
 
-  if (!user && !isAuthRoute) {
+  if (!user && !isAuthRoute && !isApiRoute) {
     const url = request.nextUrl.clone();
     url.pathname = SIGN_IN_PATH;
     url.search = "";

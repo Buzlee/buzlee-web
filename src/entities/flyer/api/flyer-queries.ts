@@ -1,12 +1,20 @@
 // PORTED FROM buzlee-app/src/entities/flyer/api/flyer-queries.ts — keep in sync; see docs/admin-sync.md
-// Web trim: only what the admin flyer wizard needs (detail read, RPC upsert,
-// update/delete, media + cover upload/delete). Discovery/list queries are
-// resident-side and not ported. Uploads take a `Blob` (the app reads a
-// file:// uri through expo-file-system); bucket, path and content type match.
+// Web trim: what the admin flyer wizard needs (detail read, RPC upsert,
+// update/delete, media + cover upload/delete) plus the discovery read
+// (`fetchFlyers` / `fetchFlyersCore`, verbatim) for the admin map + feed.
+// Uploads take a `Blob` (the app reads a file:// uri through
+// expo-file-system); bucket, path and content type match.
 import { supabase } from "@/shared/lib/supabase";
+import {
+  getFlyerCurrentOrNextOccurrenceWindow,
+  getFlyerSortTimestamp,
+  isFlyerEventUpcomingForDiscovery,
+} from "../lib/flyer-helper";
 import type {
+  DatePreset,
   Flyer,
   FlyerEvent,
+  FlyerFilters,
   FlyerUpdate,
   FlyerWithDetails,
   UpsertFlyerWithEventsInput,
@@ -85,6 +93,189 @@ export async function fetchFlyer(id: string): Promise<FlyerWithDetails> {
 
   if (error) throw error;
   return transformFlyerWithTags(data as unknown as FlyerDetailsRow);
+}
+
+/**
+ * Calculate date range from preset
+ */
+function getDateRangeFromPreset(preset: DatePreset): {
+  from: string;
+  to: string;
+} {
+  const now = new Date();
+  let dateFrom: string;
+  let dateTo: string;
+
+  switch (preset) {
+    case "today":
+      dateFrom = now.toISOString().split("T")[0];
+      dateTo = dateFrom;
+      break;
+    case "this_week": {
+      const weekStart = new Date(now);
+      weekStart.setDate(now.getDate() - now.getDay());
+      const weekEnd = new Date(weekStart);
+      weekEnd.setDate(weekStart.getDate() + 6);
+      dateFrom = weekStart.toISOString().split("T")[0];
+      dateTo = weekEnd.toISOString().split("T")[0];
+      break;
+    }
+    case "this_month": {
+      dateFrom = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-01`;
+      const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      dateTo = lastDay.toISOString().split("T")[0];
+      break;
+    }
+  }
+
+  return { from: `${dateFrom}T00:00:00`, to: `${dateTo}T23:59:59` };
+}
+
+type FetchFlyersCoreOptions = {
+  /** When true and `filters.isLive`, constrain the SQL query to the current live window (resident discovery). */
+  restrictQueryToLiveWindow: boolean;
+};
+
+async function fetchFlyersCore(
+  filters: FlyerFilters | undefined,
+  options: FetchFlyersCoreOptions,
+): Promise<FlyerWithDetails[]> {
+  // If filtering by tags, first get flyer IDs that match
+  let tagFilteredFlyerIds: string[] | null = null;
+  if (filters?.tagIds && filters.tagIds.length > 0) {
+    const { data: flyerTagData } = await supabase
+      .from("flyer_tags")
+      .select("flyer_id")
+      .in("tag_id", filters.tagIds);
+
+    if (!flyerTagData || flyerTagData.length === 0) {
+      return [];
+    }
+    tagFilteredFlyerIds = [...new Set(flyerTagData.map((ft) => ft.flyer_id))];
+  }
+
+  let query = supabase.from("flyers").select(FLYER_WITH_DETAILS_SELECT);
+
+  if (tagFilteredFlyerIds) {
+    query = query.in("id", tagFilteredFlyerIds);
+  }
+
+  if (filters?.status) {
+    if (Array.isArray(filters.status)) {
+      query = query.in("status", filters.status);
+    } else {
+      query = query.eq("status", filters.status);
+    }
+  }
+
+  if (filters?.categoryId) {
+    query = query.eq("category_id", filters.categoryId);
+  }
+
+  if (filters?.categoryIds && filters.categoryIds.length > 0) {
+    query = query.in("category_id", filters.categoryIds);
+  }
+
+  if (filters?.townId) {
+    query = query.eq("town_id", filters.townId);
+  }
+
+  if (filters?.townIds && filters.townIds.length > 0) {
+    query = query.in("town_id", filters.townIds);
+  }
+
+  if (filters?.businessId) {
+    query = query.eq("business_id", filters.businessId);
+  }
+
+  if (filters?.visibility) {
+    if (Array.isArray(filters.visibility)) {
+      query = query.in("visibility", filters.visibility);
+    } else {
+      query = query.eq("visibility", filters.visibility);
+    }
+  }
+
+  const useLiveWindow = options.restrictQueryToLiveWindow && !!filters?.isLive;
+  if (useLiveWindow) {
+    const now = new Date().toISOString();
+    query = query.eq("status", "live").lte("live_at", now);
+  }
+
+  query = query.order("event_date", { ascending: true });
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  let results = (data as unknown as FlyerDetailsRow[]).map(
+    transformFlyerWithTags,
+  );
+
+  if (filters?.timeOfDay) {
+    results = results.filter((flyer) => {
+      const eventHour =
+        getFlyerCurrentOrNextOccurrenceWindow(flyer).start.getHours();
+      switch (filters.timeOfDay) {
+        case "morning":
+          return eventHour >= 6 && eventHour < 12;
+        case "afternoon":
+          return eventHour >= 12 && eventHour < 17;
+        case "evening":
+          return eventHour >= 17 && eventHour < 21;
+        case "night":
+          return eventHour >= 21 || eventHour < 6;
+        default:
+          return true;
+      }
+    });
+  }
+
+  if (filters?.datePreset || filters?.dateFrom || filters?.dateTo) {
+    let rangeFrom: Date | null = null;
+    let rangeTo: Date | null = null;
+
+    if (filters?.datePreset) {
+      const { from, to } = getDateRangeFromPreset(filters.datePreset);
+      rangeFrom = new Date(from);
+      rangeTo = new Date(to);
+    }
+    if (filters?.dateFrom) {
+      rangeFrom = new Date(filters.dateFrom);
+    }
+    if (filters?.dateTo) {
+      rangeTo = new Date(filters.dateTo);
+    }
+
+    results = results.filter((flyer) => {
+      const reference = rangeFrom ?? new Date();
+      const occurrence = getFlyerCurrentOrNextOccurrenceWindow(
+        flyer,
+        reference,
+      );
+      if (rangeFrom && occurrence.end < rangeFrom) return false;
+      if (rangeTo && occurrence.start > rangeTo) return false;
+      return true;
+    });
+  }
+
+  if (useLiveWindow) {
+    results = results.filter(isFlyerEventUpcomingForDiscovery);
+  }
+
+  results.sort((a, b) => getFlyerSortTimestamp(a) - getFlyerSortTimestamp(b));
+
+  return results;
+}
+
+/**
+ * Fetch flyers with filters
+ */
+export async function fetchFlyers(
+  filters?: FlyerFilters,
+): Promise<FlyerWithDetails[]> {
+  return fetchFlyersCore(filters, {
+    restrictQueryToLiveWindow: !!filters?.isLive,
+  });
 }
 
 /**

@@ -13,6 +13,8 @@ import {
 } from "@/entities/location";
 import { Field } from "@/features/admin/businesses/business-form";
 import { AddressField } from "@/features/admin/components/address-field";
+import { coordinateFromFlyerLocation } from "@/features/admin/discovery/lib/map-coordinates";
+import { LocationPreviewMap } from "@/features/admin/discovery/ui/location-preview-map";
 import type { WizardStepProps } from "../../model/wizard-api";
 import { stepCopy } from "../../model/wizard-steps";
 import { WizardFooter } from "../components/wizard-footer";
@@ -84,16 +86,21 @@ export function LocationStep({
       ) : null}
 
       {draft.location ? (
-        <div className="flex items-center gap-3 rounded-lg bg-muted px-4 py-3 text-sm text-muted-foreground">
-          <MapPin className="size-4 shrink-0" />
-          <span className="min-w-0 truncate">
-            {composeAddressWithUnit(
-              draft.location.formatted_address,
-              draft.location.unit,
-            )}
-            {draft.location.town_name ? ` · ${draft.location.town_name}` : ""}
-          </span>
-        </div>
+        <>
+          <div className="flex items-center gap-3 rounded-lg bg-muted px-4 py-3 text-sm text-muted-foreground">
+            <MapPin className="size-4 shrink-0" />
+            <span className="min-w-0 truncate">
+              {composeAddressWithUnit(
+                draft.location.formatted_address,
+                draft.location.unit,
+              )}
+              {draft.location.town_name ? ` · ${draft.location.town_name}` : ""}
+            </span>
+          </div>
+          <LocationPreviewMap
+            coordinate={coordinateFromFlyerLocation(draft.location)}
+          />
+        </>
       ) : null}
 
       <Field htmlFor="flyer-location-name" label="Location name (optional)">

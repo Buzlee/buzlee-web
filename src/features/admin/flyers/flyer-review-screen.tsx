@@ -1,6 +1,11 @@
 "use client";
 
-import { ChevronRight, ImageOff, Newspaper } from "lucide-react";
+import {
+  ChevronRight,
+  ImageOff,
+  Map as MapIcon,
+  Newspaper,
+} from "lucide-react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useState } from "react";
@@ -12,11 +17,12 @@ import {
   useAdminFlyer,
   useAdminRejectFlyer,
 } from "@/entities/admin";
-import { formatFlyerEventLine } from "@/entities/flyer/lib";
 import { EmptyState } from "@/features/admin/components/empty-state";
 import { InitialsAvatar } from "@/features/admin/components/initials-avatar";
 import { RejectDialog } from "@/features/admin/dialogs/reject-dialog";
+import { discoveryMapHref } from "@/features/admin/discovery/lib/discovery-href";
 import { FlyerLineup } from "@/features/admin/flyers/flyer-lineup";
+import { formatFlyerWhen } from "@/features/admin/lib/flyer-when";
 import { formatRelativeTime } from "@/features/admin/lib/format";
 import { PageHeader } from "@/features/admin/shell/page-header";
 import { StatusChip } from "@/features/admin/shell/status-chip";
@@ -46,33 +52,6 @@ function FactRow({
       </span>
     </div>
   );
-}
-
-/**
- * "When" for a single-event flyer. Prefers the flyer_events row (recurrence-
- * aware: "Fridays · 5–7 PM · through Aug 28"); legacy rows without child
- * events fall back to the flat summary columns. Same rule as the mobile
- * `flyer-review/[id]` screen.
- */
-function formatEventWhen(flyer: AdminFlyerSummary): string {
-  const event = flyer.events[0];
-  if (event) return formatFlyerEventLine(event);
-  const start = new Date(flyer.event_date).toLocaleDateString("en-US", {
-    weekday: "short",
-    month: "short",
-    day: "numeric",
-  });
-  const parts = [start];
-  if (flyer.event_time) parts.push(flyer.event_time);
-  if (flyer.event_end_date && flyer.event_end_date !== flyer.event_date) {
-    parts.push(
-      `– ${new Date(flyer.event_end_date).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
-      })}`,
-    );
-  }
-  return parts.join(" · ");
 }
 
 function FlyerHero({ flyer }: { flyer: AdminFlyerSummary }) {
@@ -224,7 +203,7 @@ export function FlyerReviewScreen() {
 
             <div className="border-t border-border">
               {!isMulti ? (
-                <FactRow label="When" value={formatEventWhen(flyer)} />
+                <FactRow label="When" value={formatFlyerWhen(flyer)} />
               ) : null}
               <FactRow
                 label="Where"
@@ -265,15 +244,29 @@ export function FlyerReviewScreen() {
           <p className="text-sm text-muted-foreground">
             Taking down hides this flyer from residents immediately.
           </p>
-          <Button
-            className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
-            disabled={rejectFlyer.isPending}
-            onClick={() => setTakeDownOpen(true)}
-            type="button"
-            variant="outline"
-          >
-            Take down…
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Mobile parity: the live decision bar's secondary "View on map" */}
+            <Button
+              asChild
+              disabled={rejectFlyer.isPending}
+              type="button"
+              variant="outline"
+            >
+              <Link href={discoveryMapHref(flyer.id)}>
+                <MapIcon />
+                View on map
+              </Link>
+            </Button>
+            <Button
+              className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+              disabled={rejectFlyer.isPending}
+              onClick={() => setTakeDownOpen(true)}
+              type="button"
+              variant="outline"
+            >
+              Take down…
+            </Button>
+          </div>
         </div>
       ) : null}
 

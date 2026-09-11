@@ -93,6 +93,22 @@ provenance header added.
 | `src/features/admin-inbox/model/triage-queue.ts` | `src/features/admin/inbox/model/triage-queue.ts` | verbatim + `// Web fix:` web hrefs (`/admin/businesses/review?id=`, `/admin/claims?id=`) and a contact-email fallback for the claimant title; `biome-ignore` on the `then` field |
 | `src/features/admin-inbox/model/use-triage-queue.ts` | same (under `features/admin/inbox`) | verbatim |
 | `src/features/admin-inbox/model/use-triage-store.ts` | same (under `features/admin/inbox`) | web adaptation — module store + `useSyncExternalStore` instead of Zustand; same `useTriageStore(selector)` shape, session-only (reload resets) |
+| `src/features/admin-batch-upload/lib/csv.ts` | `src/features/admin/batch-upload/lib/csv.ts` | verbatim |
+| `src/features/admin-batch-upload/lib/batch-row-schemas.ts` | same (under `features/admin/batch-upload`) | verbatim (zod 4; one `// Web fix:` — `parseAgeRestriction(v)!` → `?? undefined`) |
+| `src/features/admin-batch-upload/lib/resolve-rows.ts` | same | verbatim (two `// Web fix:` — `rawRows.get(n)!` → `?? {}`) |
+| `src/features/admin-batch-upload/lib/remote-media.ts` | same | verbatim except `MAX_MEDIA_BYTES` is exported and the fetch is relayed through `mediaProxyUrl()` — see "Web adaptations" |
+| `src/features/admin-batch-upload/api/batch-upload-queries.ts` | same | verbatim |
+| `src/features/admin-batch-upload/model/use-batch-upload.ts` | same | see "Web adaptations" (`pickAndValidate(file: File)`; `for…of`; also invalidates `adminKeys.statusCounts()`) |
+| `src/features/admin-batch-upload/ui/row-field-defs.ts` | same | verbatim shape; RN `keyboardType` / `autoCapitalize` → HTML `inputMode` / `type` |
+| `src/features/filter/model/types.ts` | `src/features/admin/discovery/model/filter-types.ts` | verbatim (`DATE_PRESETS`, `TIME_OF_DAY_OPTIONS`, `DEFAULT_FILTER_STATE`) |
+| `src/features/filter/model/use-filter-state.ts` | `src/features/admin/discovery/model/use-filter-state.ts` | web adaptation — module store + `useSyncExternalStore` instead of Zustand; same `useFilterStore(selector)` shape and actions |
+| `src/features/discovery/lib/filter-state-to-flyer-filters.ts` | `src/features/admin/discovery/lib/…` | verbatim |
+| `src/features/discovery/lib/group-flyers-by-time-period.ts` | same | verbatim |
+| `src/features/map/lib/map-constants.ts` | same | web trim — `MAP_ZOOM`, `MAP_BOUNDARIES`, `NATIVE_CLUSTER` (carousel/marker sizing constants omitted) |
+| `src/features/map/lib/map-coordinates.ts` | same | web trim — `MapCoordinate`, `isValidCoordinate`, `coordinateFromFlyerLocation` |
+| `src/features/map/lib/flyers-to-geojson.ts` | same | verbatim |
+| `src/entities/flyer/api/flyer-queries.ts` (`getDateRangeFromPreset`, `fetchFlyersCore`, `fetchFlyers`) | same | verbatim additions to the existing web trim (2026-09-10) |
+| `src/entities/flyer/api/use-flyer.ts` (`useFlyers`) | same | verbatim addition (`keepPreviousData`, 30s `staleTime` when `isLive`) |
 
 Deliberately **not** ported: `entities/business-claim/api/use-business-claim.ts`
 (RN/owner-side hooks) — replaced by the web-only
@@ -186,9 +202,9 @@ model/types.ts and used for the sidebar nav counts.
   patches URLs — same sequence as the app's create-business screen.
 - `src/features/admin/flyers/flyer-review-screen.tsx` — web flyer detail
   (`/admin/flyers/review?id=`): hero image, status, business link, lineup for
-  multi-event flyers, facts, take-down bar. Mirrors mobile
-  `app/(admin-detail)/flyer-review/[id]` minus "View on map" (map not ported
-  yet — roadmap item 4). `flyer-lineup.tsx` is the web port of
+  multi-event flyers, facts, take-down bar with "View on map"
+  (`discoveryMapHref`). Mirrors mobile
+  `app/(admin-detail)/flyer-review/[id]`. `flyer-lineup.tsx` is the web port of
   `features/admin-flyer-review/ui/AdminFlyerLineup`.
 - `src/features/admin/flyer-wizard/**` — web port of the mobile flyer wizard
   (admin variant). Model/lib files are verbatim ports (table above); the
@@ -215,8 +231,8 @@ model/types.ts and used for the sidebar nav counts.
     age-restriction fields, tag selector (catalog `tags`, max 5, no tag
     creation), visibility choice with the live member count, review rows +
     preview card. The multi-event **lineup month calendar is not ported**
-    (list only); the Location step shows the picked address instead of a
-    map preview.
+    (list only); the Location step shows the picked address plus the
+    `LocationPreviewMap` pin preview (when the MapTiler key is set).
   - `ui/flyer-wizard-screen.tsx` — session orchestration; Unpublish /
     Delete on the live edit hub call `flyer-status-mutations` with the
     app's confirm copy.
@@ -234,8 +250,9 @@ model/types.ts and used for the sidebar nav counts.
   (take a `Blob`; bucket `flyer-media`, paths `<id>/<ts>.jpg|pdf` and
   `<id>/cover-<ts>.jpg`, delete-after-upload — identical to the app),
   `deleteFlyerMedia` / `deleteFlyerCoverPhoto`, `cleanupOrphanedFlyerMedia`.
-  The app's debug `console.log` ownership checks are dropped. Resident list
-  / discovery queries are not ported.
+  The app's debug `console.log` ownership checks are dropped. The resident
+  discovery list query (`fetchFlyers` + `getDateRangeFromPreset`) was added
+  verbatim for Tools → Map (2026-09-10).
 - `src/features/admin/claims/claims-screen.tsx` — web claim history
   (Pending / Approved / Declined chips, search, side panel with domain
   signal, decision date and decline reason; approve/decline for pending).
@@ -254,6 +271,76 @@ model/types.ts and used for the sidebar nav counts.
   both repos (lifted 2026-09-10 from web `inbox-screen` and mobile
   `claim-review`). Keep the four strings identical across repos — the
   reason text is what claimants receive by email.
+
+- `src/features/admin/batch-upload/**` — web port of the mobile admin batch
+  upload (`features/admin-batch-upload`) at `/admin/tools/batch-upload`.
+  lib/api/model are ports (table above); web-specific pieces:
+  - `model/use-batch-upload.ts` — `pickAndValidate(file: File)` reads the
+    CSV with `file.text()` (no expo-document-picker / expo-file-system);
+    `CSV_ACCEPT` for the file input. Same parse → `resolveRows` → edit →
+    upload state machine, same `uploadFlyerRow` / `createBusinessRow`.
+  - `lib/csv-template.ts` — CSV templates generated from the zod schema
+    keys (`flyerRowSchema.shape` / `businessRowSchema.shape`), downloaded via
+    `shared/lib/download-file.ts` (`downloadTextFile`, BOM-prefixed Blob —
+    also used by `entities/admin/lib/residents-csv.ts` now).
+  - `ui/**` — dropzone + file picker, type toggle, review sections per row
+    status (`row-status.ts` maps ready / skipped / needs-fix / uploaded /
+    failed onto the existing `StatusChip` variants), `row-edit-sheet.tsx`
+    (Sheet + shared `Field` from `business-form.tsx` + `ChoiceChips`),
+    sticky upload bar, promise-based confirm.
+- `src/app/admin/api/media-proxy/route.ts` — same-origin relay for the batch
+  upload's remote media (`remote-media.ts` → `mediaProxyUrl()`); browsers
+  cannot fetch third-party image hosts directly (CORS), the app has no such
+  limit. Hardened: 404 when Supabase is unconfigured (kill switch), server
+  `getUser()` + `profiles.role === 'admin'` (401/403), http(s) only, blocks
+  localhost / private IPv4 / IPv6 literals, follows ≤ 5 redirects
+  re-validating each hop, 30s timeout, 413 above `MAX_MEDIA_BYTES`, streams
+  the upstream body with `cache-control: no-store`. Uses the anon key +
+  cookie session only.
+- `src/proxy.ts` — `/admin/api/*` is exempt from the sign-in redirect (route
+  handlers return 401/403 themselves). Matcher unchanged (`/admin/:path*`).
+- `src/features/admin/discovery/**` — web port of the mobile admin
+  discovery map + feed (`app/(admin-detail)/discovery-map` /
+  `discovery-feed`, `features/discovery`, `features/filter`, `features/map`)
+  at `/admin/tools/map` (Tools → Map). One route, Map / List toggle
+  (`?view=list`), the app's `?flyerId=` deep link (fetch via `useFlyer`,
+  merge into the dataset, fly to `FOCUS_FLYER_ZOOM`, select, then strip the
+  param). Read-only, like the app: the detail panel links to
+  `/admin/flyers/review?id=`. Data: `useFlyers(filterStateToFlyerFilters(
+  state, { restrictToLiveFlyers: true }))`; map shows every flyer with a
+  valid coordinate (admin viewer — no upcoming filter, as in
+  `DiscoveryMapView`), list filters `isFlyerEventUpcomingForDiscovery` and
+  sorts by `getFlyerSortTimestamp` like the admin feed screen.
+  - Map: **MapLibre GL JS** (`maplibre-gl`) with the same MapTiler style ids
+    as the app (`lib/map-style.ts`, light/dark by `.dark`), bounded by
+    `MAP_BOUNDARIES`, min/max zoom from `MAP_ZOOM`. Clustering uses
+    MapLibre's native GeoJSON clustering with the app's `NATIVE_CLUSTER`
+    radius / max-zoom instead of porting supercluster + RN markers
+    (`ui/flyer-map.tsx`; `ui/use-maplibre.ts` owns the map lifecycle). Pins
+    are circle layers coloured from the theme tokens (`lib/theme-color.ts`
+    reads `--color-primary` / `--color-foreground` / `--color-background`).
+    Clicking a cluster zooms to its expansion zoom; clicking a pin reports
+    every flyer at that point → `FlyerStackPanel` (the app's colocated
+    sheet). No realtime subscription (`useFlyerRealtimeSync` is not ported);
+    data refreshes via React Query's 30s `staleTime` / refetch-on-focus.
+  - Filters: `ui/filter-sheet.tsx` (tags with search / `+n more`, date
+    presets or a specific `<input type="date">` → `setDateRange(
+    "<d>T00:00:00", "<d>T23:59:59")`, time of day, towns with "All") and
+    `ui/category-chips.tsx` (single-select, "All" resets) over the ported
+    filter store. `ui/flyer-feed.tsx` groups with `groupFlyersByTimePeriod`.
+  - `ui/location-preview-map.tsx` — static single-pin map under the flyer
+    wizard Location step's address row (the app's map preview). Renders
+    nothing when the key is unset, so the wizard never depends on it.
+  - `lib/discovery-href.ts` — `discoveryMapHref(flyerId)` drives the flyer
+    review bar's "View on map" (mobile parity) and the sidebar link.
+  - Env: `NEXT_PUBLIC_MAPTILER_API_KEY` (Vercel **Development + Preview
+    only**, `--type config`; MapTiler keys are client-side by design —
+    restrict allowed origins in MapTiler). Unset → the map view renders a
+    "MapTiler API key is not configured" notice; the list view still works.
+    Builds succeed with or without it.
+- `src/features/admin/lib/flyer-when.ts` — `formatFlyerWhen(flyer)` shared by
+  the flyer review screen and the discovery cards/panel (multi-event summary
+  line, single-event line, legacy fallback).
 
 ## RPC / edge-function contract
 
