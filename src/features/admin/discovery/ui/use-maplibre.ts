@@ -18,18 +18,31 @@ export type UseMapLibreOptions = {
   interactive?: boolean;
 };
 
+export type UseMapLibreResult = {
+  /** The map once its style has loaded; null while loading or on error. */
+  map: MapLibreMap | null;
+  /** Set when the map could not be created (typically: no WebGL2). */
+  error: Error | null;
+};
+
 /**
  * Mounts a MapLibre GL JS map into `containerRef` with the app's shared camera
  * constraints (Westchester bounds, zoom range, no rotate/pitch — mobile sets
  * `touchPitch={false} touchRotate={false}`) and the MapTiler style for the
  * current colour scheme. Resolves to the map once its style has loaded;
  * removed on unmount. Callers must only mount it when `isMapConfigured()`.
+ *
+ * The container element belongs to MapLibre: it adds `.maplibregl-map`, whose
+ * unlayered stylesheet sets `position: relative` and wins over Tailwind's
+ * `@layer utilities` (`absolute`, `inset-0`, …) regardless of import order.
+ * Give the ref a plain `h-full w-full` div and put layout on a wrapper.
  */
 export function useMapLibre(
   containerRef: RefObject<HTMLDivElement | null>,
   { center, zoom, interactive = true }: UseMapLibreOptions = {},
-): MapLibreMap | null {
+): UseMapLibreResult {
   const [map, setMap] = useState<MapLibreMap | null>(null);
+  const [error, setError] = useState<Error | null>(null);
 
   // Camera defaults are read once at mount; later prop changes are driven by
   // the caller through map.easeTo / flyTo.
@@ -38,20 +51,28 @@ export function useMapLibre(
     const container = containerRef.current;
     if (!container) return;
 
-    const instance = new MapLibreMap({
-      container,
-      style: mapStyleUrl(currentMapColorScheme()),
-      center: center ?? MAP_BOUNDARIES.center,
-      zoom: zoom ?? MAP_ZOOM.DEFAULT,
-      minZoom: MAP_ZOOM.MIN,
-      maxZoom: MAP_ZOOM.MAX,
-      maxBounds: [MAP_BOUNDARIES.sw, MAP_BOUNDARIES.ne],
-      interactive,
-      dragRotate: false,
-      pitchWithRotate: false,
-      touchPitch: false,
-      attributionControl: { compact: true },
-    });
+    let instance: MapLibreMap;
+    try {
+      instance = new MapLibreMap({
+        container,
+        style: mapStyleUrl(currentMapColorScheme()),
+        center: center ?? MAP_BOUNDARIES.center,
+        zoom: zoom ?? MAP_ZOOM.DEFAULT,
+        minZoom: MAP_ZOOM.MIN,
+        maxZoom: MAP_ZOOM.MAX,
+        maxBounds: [MAP_BOUNDARIES.sw, MAP_BOUNDARIES.ne],
+        interactive,
+        dragRotate: false,
+        pitchWithRotate: false,
+        touchPitch: false,
+        attributionControl: { compact: true },
+      });
+    } catch (cause) {
+      // The constructor throws synchronously when WebGL2 is unavailable;
+      // surface it as state instead of taking the whole route down.
+      setError(cause instanceof Error ? cause : new Error(String(cause)));
+      return;
+    }
     instance.touchZoomRotate.disableRotation();
     instance.keyboard.disableRotation();
 
@@ -63,5 +84,5 @@ export function useMapLibre(
     };
   }, []);
 
-  return map;
+  return { map, error };
 }

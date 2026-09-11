@@ -1,5 +1,6 @@
 "use client";
 
+import { MapPinOff } from "lucide-react";
 import type { GeoJSONSource, MapLayerMouseEvent } from "maplibre-gl";
 import { useEffect, useRef } from "react";
 import type { FlyerWithDetails } from "@/entities/flyer/model/types";
@@ -41,7 +42,7 @@ export function FlyerMap({
   className?: string;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const map = useMapLibre(containerRef);
+  const { map, error } = useMapLibre(containerRef);
   const onSelectRef = useRef(onSelect);
   onSelectRef.current = onSelect;
 
@@ -104,6 +105,7 @@ export function FlyerMap({
     const onEnter = () => setCursor("pointer");
     const onLeave = () => setCursor("");
 
+    let disposed = false;
     const onClusterClick = async (event: MapLayerMouseEvent) => {
       const feature = event.features?.[0];
       const clusterId = feature?.properties?.cluster_id;
@@ -111,7 +113,11 @@ export function FlyerMap({
         return;
       const source = map.getSource<GeoJSONSource>(SOURCE_ID);
       if (!source) return;
-      const expansionZoom = await source.getClusterExpansionZoom(clusterId);
+      // Resolved by the worker; the map may have been removed meanwhile.
+      const expansionZoom = await source
+        .getClusterExpansionZoom(clusterId)
+        .catch(() => null);
+      if (disposed || expansionZoom === null) return;
       map.easeTo({
         center: feature.geometry.coordinates as [number, number],
         zoom: Math.min(MAP_ZOOM.MAX, expansionZoom),
@@ -135,6 +141,7 @@ export function FlyerMap({
     ];
 
     return () => {
+      disposed = true;
       for (const subscription of subscriptions) subscription.unsubscribe();
       // The map itself is removed by useMapLibre; layers die with it.
     };
@@ -166,5 +173,25 @@ export function FlyerMap({
     });
   }, [map, focus]);
 
-  return <div className={className} ref={containerRef} />;
+  // Layout lives on the wrapper; the inner div is MapLibre's (see useMapLibre).
+  return (
+    <div className={className}>
+      {error ? (
+        <div
+          className="flex h-full flex-col items-center justify-center gap-2 p-8 text-center"
+          role="alert"
+        >
+          <MapPinOff className="size-8 text-muted-foreground" />
+          <p className="text-sm font-semibold text-foreground">
+            The map can’t be displayed in this browser
+          </p>
+          <p className="max-w-sm text-sm text-muted-foreground">
+            WebGL2 is required. Try another browser, or use the List view.
+          </p>
+        </div>
+      ) : (
+        <div className="h-full w-full" ref={containerRef} />
+      )}
+    </div>
+  );
 }

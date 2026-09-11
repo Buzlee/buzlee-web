@@ -8,10 +8,10 @@ import { themeColor } from "../lib/theme-color";
 import { FOCUS_FLYER_ZOOM } from "./flyer-map";
 import { useMapLibre } from "./use-maplibre";
 
-function PreviewMap({ coordinate }: { coordinate: MapCoordinate }) {
+function PreviewMap({ lat, lng }: MapCoordinate) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const map = useMapLibre(containerRef, {
-    center: [coordinate.lng, coordinate.lat],
+  const { map, error } = useMapLibre(containerRef, {
+    center: [lng, lat],
     zoom: FOCUS_FLYER_ZOOM,
     interactive: false,
   });
@@ -21,15 +21,25 @@ function PreviewMap({ coordinate }: { coordinate: MapCoordinate }) {
     const marker = new Marker({
       color: themeColor(map.getContainer(), "primary"),
     })
-      .setLngLat([coordinate.lng, coordinate.lat])
+      .setLngLat([lng, lat])
       .addTo(map);
-    map.jumpTo({ center: [coordinate.lng, coordinate.lat] });
+    map.jumpTo({ center: [lng, lat] });
     return () => {
       marker.remove();
     };
-  }, [map, coordinate]);
+  }, [map, lat, lng]);
 
-  return <div className="h-full w-full" ref={containerRef} />;
+  // Decorative preview: nothing to show when WebGL is unavailable.
+  if (error) return null;
+  // Frame on the wrapper; the inner div belongs to MapLibre (see useMapLibre).
+  return (
+    <div
+      aria-hidden
+      className="h-44 w-full overflow-hidden rounded-xl border border-border"
+    >
+      <div className="h-full w-full" ref={containerRef} />
+    </div>
+  );
 }
 
 /**
@@ -45,14 +55,10 @@ export function LocationPreviewMap({
 }) {
   if (!coordinate || !isMapConfigured()) return null;
   return (
-    <div
-      aria-hidden
-      className="h-44 w-full overflow-hidden rounded-xl border border-border"
-    >
-      <PreviewMap
-        coordinate={coordinate}
-        key={`${coordinate.lat},${coordinate.lng}`}
-      />
-    </div>
+    <PreviewMap
+      key={`${coordinate.lat},${coordinate.lng}`}
+      lat={coordinate.lat}
+      lng={coordinate.lng}
+    />
   );
 }

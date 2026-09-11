@@ -324,6 +324,17 @@ model/types.ts and used for the sidebar nav counts.
     (postinstall) copies `maplibre-gl-worker.mjs` + `maplibre-gl-shared.mjs`
     into the gitignored `public/vendor/maplibre-gl/` and `use-maplibre.ts`
     calls `setWorkerUrl()` with that path.
+    The element handed to MapLibre is never styled with Tailwind layout
+    utilities: `maplibre-gl.css` is unlayered and its
+    `.maplibregl-map { position: relative }` beats anything in
+    `@layer utilities` (`absolute` / `inset-0`), so the container collapsed
+    to 0px in production builds (blank map, 2026-09-10). Each map component
+    styles a wrapper and gives the hook a plain `h-full w-full` div.
+    `useMapLibre` returns `{ map, error }`; the MapLibre constructor throws
+    synchronously without WebGL2, which the discovery map renders as an
+    inline notice (List view still works) and the wizard preview omits.
+    Known gap: the style is picked once at mount — toggling dark mode
+    doesn't re-style an open map.
     Clicking a cluster zooms to its expansion zoom; clicking a pin reports
     every flyer at that point → `FlyerStackPanel` (the app's colocated
     sheet). No realtime subscription (`useFlyerRealtimeSync` is not ported);
