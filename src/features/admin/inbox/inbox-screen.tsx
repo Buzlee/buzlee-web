@@ -82,10 +82,21 @@ function InboxSkeleton() {
   );
 }
 
-/** The queue is the whole job — clearing it gets a calm, centered moment. */
+/**
+ * The queue is the whole job — clearing it gets a calm moment. It sits on the
+ * same plate geometry as the "Next up" hero so the column's leading edge stays
+ * anchored to the page title; the content is centered within the plate, not
+ * within a left-anchored column.
+ */
 function CaughtUp() {
   return (
-    <div className="flex flex-col items-center px-6 pt-10 pb-4 text-center">
+    <section
+      aria-labelledby="inbox-caught-up"
+      className={cn(
+        INBOX_SURFACE,
+        "flex flex-col items-center px-8 py-14 text-center",
+      )}
+    >
       <span className="flex size-16 items-center justify-center rounded-full bg-action-checked-in-soft">
         <CheckCircle2
           aria-hidden
@@ -93,10 +104,13 @@ function CaughtUp() {
           strokeWidth={2}
         />
       </span>
-      <h2 className="mt-5 text-[22px] leading-7 font-semibold tracking-[-0.02em] text-foreground">
+      <h2
+        className="mt-5 text-[20px] leading-7 font-semibold tracking-[-0.02em] text-foreground"
+        id="inbox-caught-up"
+      >
         You&apos;re all caught up
       </h2>
-      <p className="mt-2 max-w-sm text-[15px] leading-5.5 text-muted-foreground">
+      <p className="mt-1.5 max-w-sm text-[15px] leading-5.5 text-muted-foreground">
         No businesses or claims are waiting on you. New submissions show up here
         the moment they arrive.
       </p>
@@ -107,7 +121,7 @@ function CaughtUp() {
       >
         <Link href="/admin/flyers">Browse live flyers</Link>
       </Button>
-    </div>
+    </section>
   );
 }
 
