@@ -1,7 +1,6 @@
 "use client";
 
 import {
-  Hexagon,
   Inbox,
   LogOut,
   Map as MapIcon,
@@ -11,6 +10,7 @@ import {
   UserCheck,
   Users,
 } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -138,9 +138,14 @@ export function AdminSidebar({
     <Sidebar collapsible="offcanvas">
       <SidebarHeader className="px-4 pt-5 pb-2">
         <div className="flex items-center gap-2.5">
-          <span className="flex size-7 items-center justify-center rounded-lg bg-primary">
-            <Hexagon className="size-4 text-white" strokeWidth={2.5} />
-          </span>
+          <Image
+            src="/icon.png"
+            alt=""
+            width={28}
+            height={28}
+            className="size-7 rounded-full"
+            priority
+          />
           <span className="text-[17px] font-extrabold tracking-tight text-sidebar-foreground">
             Buzlee
           </span>

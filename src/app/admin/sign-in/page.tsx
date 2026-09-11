@@ -1,5 +1,5 @@
-import { Hexagon } from "lucide-react";
 import type { Metadata } from "next";
+import Image from "next/image";
 import { notFound, redirect } from "next/navigation";
 import { isSupabaseConfigured } from "@/shared/lib/supabase";
 import { createSupabaseServerClient } from "@/shared/lib/supabase-server";
@@ -28,9 +28,14 @@ export default async function AdminSignInPage() {
     <main className="flex min-h-dvh flex-1 items-center justify-center bg-background px-4">
       <div className="w-full max-w-sm rounded-xl border border-border bg-card p-8 shadow-sm">
         <div className="mb-6 flex items-center gap-3">
-          <span className="flex size-7 items-center justify-center rounded-lg bg-primary">
-            <Hexagon className="size-4 text-white" strokeWidth={2.5} />
-          </span>
+          <Image
+            src="/icon.png"
+            alt=""
+            width={28}
+            height={28}
+            className="size-7 rounded-full"
+            priority
+          />
           <span className="text-[17px] font-extrabold tracking-tight text-foreground">
             Buzlee
           </span>
