@@ -233,8 +233,10 @@ model/types.ts and used for the sidebar nav counts.
     dropzone (drag-and-drop + file picker, image or PDF), cover-photo row,
     age-restriction fields, tag selector (catalog `tags`, max 5, no tag
     creation), visibility choice with the live member count, review rows +
-    preview card. The multi-event **lineup month calendar is not ported**
-    (list only); the Location step shows the picked address plus the
+    preview card. The multi-event lineup step ports the app's month
+    calendar + day agenda (`lineup-calendar.tsx`, `day-agenda-card.tsx`)
+    over the shadcn `Calendar`, laid out side by side on desktop; the
+    Location step shows the picked address plus the
     `LocationPreviewMap` pin preview (when the MapTiler key is set).
   - `ui/flyer-wizard-screen.tsx` — session orchestration; Unpublish /
     Delete on the live edit hub call `flyer-status-mutations` with the
