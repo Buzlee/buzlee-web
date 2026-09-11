@@ -9,6 +9,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   claimDomainMatch,
   useAdminBusinesses,
+  useAdminLiveFlyerCount,
   useAdminResidents,
   useAdminStatusCounts,
 } from "@/entities/admin";
@@ -161,6 +162,7 @@ export function InboxScreen() {
   const claimsQuery = useBusinessClaims("pending");
   const { data: statusCounts } = useAdminStatusCounts();
   const { data: residents } = useAdminResidents();
+  const { data: liveFlyers } = useAdminLiveFlyerCount();
   const triage = useTriageQueue();
 
   // Oldest first — work the queue in arrival order.
@@ -290,7 +292,7 @@ export function InboxScreen() {
           },
           {
             label: "Live flyers",
-            value: statusCounts ? (statusCounts.flyers.live ?? 0) : undefined,
+            value: liveFlyers,
             href: "/admin/flyers",
           },
           {

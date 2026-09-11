@@ -50,7 +50,7 @@ export function FlyerCard({
     <button
       aria-pressed={selected}
       className={cn(
-        "flex w-full items-center gap-3 rounded-xl border bg-card p-2.5 text-left shadow-sm transition-colors hover:bg-secondary/60",
+        "flex w-full items-center gap-3 rounded-xl border bg-card p-2.5 text-left shadow-sm transition-[background-color,border-color,transform,scale] duration-150 ease-out-strong outline-none hover:bg-secondary/60 focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.99] motion-reduce:active:scale-100",
         selected ? "border-foreground" : "border-border",
       )}
       onClick={() => onSelect(flyer)}

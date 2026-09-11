@@ -1,18 +1,19 @@
 "use client";
 
-import { ArrowLeft, Map as MapIcon, X } from "lucide-react";
+import { ArrowLeft, ImageOff, Map as MapIcon, X } from "lucide-react";
 import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import type { FlyerWithDetails } from "@/entities/flyer/model/types";
+import { FlyerArtwork } from "@/features/admin/flyers/flyer-artwork";
 import { formatFlyerWhen } from "@/features/admin/lib/flyer-when";
 import { StatusChip } from "@/features/admin/shell/status-chip";
 import { coordinateFromFlyerLocation } from "../lib/map-coordinates";
-import { FlyerCard, FlyerThumbnail } from "./flyer-card";
+import { FlyerCard } from "./flyer-card";
 
 function Fact({ label, value }: { label: string; value: string }) {
   return (
     <div className="flex gap-4 border-b border-border py-2.5 last:border-b-0">
-      <span className="w-[84px] shrink-0 text-sm text-muted-foreground">
+      <span className="w-[96px] shrink-0 text-[13px] leading-5 font-medium text-muted-foreground">
         {label}
       </span>
       <span className="min-w-0 flex-1 text-sm break-words text-foreground">
@@ -57,7 +58,7 @@ export function FlyerDetailPanel({
             <ArrowLeft />
           </Button>
         ) : (
-          <span className="text-xs font-bold tracking-wider text-muted-foreground uppercase">
+          <span className="text-[13px] font-semibold text-muted-foreground">
             Flyer
           </span>
         )}
@@ -73,9 +74,14 @@ export function FlyerDetailPanel({
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto p-4">
-        <FlyerThumbnail
-          className="aspect-[4/3] w-full rounded-xl border border-border"
-          flyer={flyer}
+        <FlyerArtwork
+          alt={flyer.title}
+          className="aspect-[4/5] w-full rounded-xl"
+          fallback={<ImageOff className="size-5 text-muted-foreground" />}
+          src={
+            flyer.cover_photo_url ??
+            (flyer.media_type === "image" ? flyer.media_url : null)
+          }
         />
         <div className="flex flex-col gap-1.5">
           <h2 className="text-lg font-bold tracking-tight text-foreground">

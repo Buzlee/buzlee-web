@@ -90,19 +90,21 @@ export function FlyersScreen() {
     );
   }, [liveFlyers]);
 
+  // `count_flyers_by_status` never returns live / expired rows, so those two
+  // counts come from the lists themselves (undefined while loading, not 0).
   const chips: FilterChipOption<FlyerFilter>[] = [
-    { value: "live", label: "Live", count: statusCounts?.flyers.live ?? 0 },
-    { value: "last24h", label: "Last 24h", count: last24hFlyers.length },
+    { value: "live", label: "Live", count: liveFlyers?.length },
+    {
+      value: "last24h",
+      label: "Last 24h",
+      count: liveFlyers ? last24hFlyers.length : undefined,
+    },
     {
       value: "takenDown",
       label: "Taken down",
-      count: statusCounts?.flyers.rejected ?? 0,
+      count: statusCounts?.flyers.rejected,
     },
-    {
-      value: "expired",
-      label: "Expired",
-      count: statusCounts?.flyers.expired ?? 0,
-    },
+    { value: "expired", label: "Expired", count: expiredFlyers?.length },
   ];
 
   const source =

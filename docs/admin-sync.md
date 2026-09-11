@@ -365,7 +365,7 @@ Everything the dashboard calls that is not a plain table select/update:
 RPCs (SECURITY DEFINER unless noted; all gated on `is_admin()` in SQL):
 
 - `count_businesses_by_status()` — dashboard stats
-- `count_flyers_by_status()` — dashboard stats
+- `count_flyers_by_status()` — dashboard stats. **Only groups pending / approved / rejected** (the SQL filters those three), so `flyers.live` / `flyers.expired` are never present. Web-only fix: `entities/admin/api/live-flyer-count.ts` (head count of `flyers` where `status = 'live'` and `deleted_at IS NULL`) feeds the sidebar Flyers count and the Inbox "Live flyers" total; the Flyers screen's Live / Expired chips count their own lists. Mobile still reads `counts?.flyers['live'] ?? 0` on the admin index — same bug there.
 - `get_admin_residents()` — resident directory incl. auth email
 - `get_admin_deleted_businesses()` — soft-deleted rows hidden by RLS
 - `admin_soft_delete_entity(p_entity, p_id)` — 15-day retention delete

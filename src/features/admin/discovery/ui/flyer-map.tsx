@@ -1,7 +1,11 @@
 "use client";
 
 import { MapPinOff } from "lucide-react";
-import type { GeoJSONSource, MapLayerMouseEvent } from "maplibre-gl";
+import type {
+  ExpressionSpecification,
+  GeoJSONSource,
+  MapLayerMouseEvent,
+} from "maplibre-gl";
 import { useEffect, useRef } from "react";
 import type { FlyerWithDetails } from "@/entities/flyer/model/types";
 import { flyersToGeoJSON } from "../lib/flyers-to-geojson";
@@ -32,10 +36,14 @@ export function FlyerMap({
   selectedFlyerId,
   focus,
   onSelect,
+  panelInset = 0,
   className,
 }: {
   flyers: FlyerWithDetails[];
   selectedFlyerId: string | null;
+  /** Width (px) of an overlay covering the map's right edge; the camera keeps
+   * its centre — and any fly-to target — inside the uncovered area. */
+  panelInset?: number;
   /** Camera target; the map flies whenever this object identity changes. */
   focus: FlyerMapFocus | null;
   onSelect: (flyerIds: string[]) => void;
@@ -96,6 +104,10 @@ export function FlyerMap({
         "circle-radius": 8,
         "circle-stroke-width": 2.5,
         "circle-stroke-color": paper,
+        // Selection highlight (below) eases all three together.
+        "circle-radius-transition": { duration: 150 },
+        "circle-stroke-width-transition": { duration: 150 },
+        "circle-stroke-color-transition": { duration: 150 },
       },
     });
 
@@ -152,23 +164,55 @@ export function FlyerMap({
     map?.getSource<GeoJSONSource>(SOURCE_ID)?.setData(flyersToGeoJSON(flyers));
   }, [map, flyers]);
 
-  // Selection highlight.
+  // Selection highlight: the chosen pin grows and gets an ink ring, so it
+  // reads as "this one" even inside a dense cluster of amber dots.
   useEffect(() => {
     if (!map) return;
+    const isSelected: ExpressionSpecification = [
+      "==",
+      ["get", "flyerId"],
+      selectedFlyerId ?? "",
+    ];
+    const ink = themeColor(map.getContainer(), "foreground");
+    const paper = themeColor(map.getContainer(), "background");
     map.setPaintProperty(LAYER_POINTS, "circle-radius", [
       "case",
-      ["==", ["get", "flyerId"], selectedFlyerId ?? ""],
-      12,
+      isSelected,
+      11,
       8,
+    ]);
+    map.setPaintProperty(LAYER_POINTS, "circle-stroke-width", [
+      "case",
+      isSelected,
+      3,
+      2.5,
+    ]);
+    map.setPaintProperty(LAYER_POINTS, "circle-stroke-color", [
+      "case",
+      isSelected,
+      ink,
+      paper,
     ]);
   }, [map, selectedFlyerId]);
 
-  // Camera.
+  // Camera padding persists, so later flyTo / easeTo calls centre within the
+  // visible part of the map rather than under the panel.
+  useEffect(() => {
+    if (!map) return;
+    map.easeTo({ padding: { right: panelInset }, duration: 200 });
+  }, [map, panelInset]);
+
+  // Camera. Padding is passed explicitly: a flyTo interrupts the padding
+  // ease above, so relying on the transform's current padding would centre
+  // the target under the panel.
+  const panelInsetRef = useRef(panelInset);
+  panelInsetRef.current = panelInset;
   useEffect(() => {
     if (!map || !focus) return;
     map.flyTo({
       center: [focus.coordinate.lng, focus.coordinate.lat],
       zoom: focus.zoom ?? FOCUS_FLYER_ZOOM,
+      padding: { right: panelInsetRef.current },
       duration: 500,
     });
   }, [map, focus]);

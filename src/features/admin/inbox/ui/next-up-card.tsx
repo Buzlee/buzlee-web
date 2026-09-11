@@ -8,7 +8,7 @@ import { remainingCopy, type TriageState } from "../model/triage-queue";
 import { INBOX_SURFACE, InboxSectionHeader, QueueAvatar } from "./queue-list";
 
 const PILL_BUTTON =
-  "inline-flex h-10 items-center gap-2 rounded-full px-4.5 text-sm font-semibold whitespace-nowrap outline-none select-none transition-[background-color,transform] duration-150 focus-visible:ring-[3px] focus-visible:ring-ring/50 active:scale-[0.97] active:duration-75";
+  "inline-flex h-10 items-center gap-2 rounded-full px-4.5 text-sm font-semibold whitespace-nowrap outline-none select-none transition-[background-color,transform,scale] duration-150 focus-visible:ring-[3px] focus-visible:ring-ring/50 active:scale-[0.97] active:duration-75";
 
 function Kbd({
   children,

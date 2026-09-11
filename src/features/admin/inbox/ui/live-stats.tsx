@@ -36,7 +36,7 @@ export function LiveStats({ stats }: { stats: LiveStat[] }) {
               {stat.label}
               <ChevronRight
                 aria-hidden
-                className="size-3.5 shrink-0 -translate-x-1 opacity-0 transition-[opacity,transform] duration-150 group-hover:translate-x-0 group-hover:opacity-100 motion-reduce:transition-none"
+                className="size-3.5 shrink-0 -translate-x-1 opacity-0 transition-[opacity,translate] duration-150 group-hover:translate-x-0 group-hover:opacity-100 motion-reduce:transition-none"
               />
             </span>
           </Link>

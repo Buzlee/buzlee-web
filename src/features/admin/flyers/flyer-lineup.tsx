@@ -52,7 +52,7 @@ export function FlyerLineup({
   return (
     <section className="flex flex-col gap-2.5">
       <div className="flex items-baseline justify-between px-1">
-        <h2 className="text-xs font-semibold tracking-wider text-muted-foreground uppercase">
+        <h2 className="text-[13px] font-semibold text-muted-foreground">
           Lineup · {count}
         </h2>
         {range.length > 0 ? (
@@ -71,10 +71,10 @@ export function FlyerLineup({
                 groupIndex > 0 && "border-t border-border",
               )}
             >
-              <span className="text-[11px] font-bold tracking-widest text-muted-foreground uppercase">
+              <span className="text-xs font-semibold text-muted-foreground">
                 {group.label}
               </span>
-              <span className="text-[11px] font-semibold text-muted-foreground/60">
+              <span className="text-xs font-medium text-muted-foreground/60 tabular-nums">
                 {group.events.length}
               </span>
             </div>

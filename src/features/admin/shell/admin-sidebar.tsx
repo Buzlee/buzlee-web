@@ -28,7 +28,11 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar";
-import { useAdminResidents, useAdminStatusCounts } from "@/entities/admin";
+import {
+  useAdminLiveFlyerCount,
+  useAdminResidents,
+  useAdminStatusCounts,
+} from "@/entities/admin";
 import { usePendingClaimsCount } from "@/entities/business-claim";
 import { DISCOVERY_PATH } from "@/features/admin/discovery/lib/discovery-href";
 import { supabase } from "@/shared/lib/supabase";
@@ -43,7 +47,8 @@ type NavCounts = {
 
 /**
  * Live nav counts. Inbox = pending businesses + pending claims (amber pill);
- * Claims = pending claims; the rest are muted totals. Rendering degrades
+ * Claims = pending claims; Businesses / Flyers / Residents are what is live
+ * on Buzlee (muted totals). Rendering degrades
  * gracefully while loading — items simply show no count until the queries
  * resolve.
  */
@@ -51,6 +56,7 @@ function useAdminNavCounts(): NavCounts {
   const { data: statusCounts } = useAdminStatusCounts();
   const { data: pendingClaims } = usePendingClaimsCount();
   const { data: residents } = useAdminResidents();
+  const { data: liveFlyers } = useAdminLiveFlyerCount();
 
   const pendingBusinesses = statusCounts?.businesses.pending;
 
@@ -60,10 +66,10 @@ function useAdminNavCounts(): NavCounts {
         ? undefined
         : (pendingBusinesses ?? 0) + (pendingClaims ?? 0),
     claims: pendingClaims,
-    businesses: statusCounts
-      ? Object.values(statusCounts.businesses).reduce((sum, n) => sum + n, 0)
-      : undefined,
-    flyers: statusCounts ? (statusCounts.flyers.live ?? 0) : undefined,
+    // Approved only — the same figure as the Inbox "Live on Buzlee" tile;
+    // pending work is the Inbox pill, rejected is not a nav count.
+    businesses: statusCounts?.businesses.approved,
+    flyers: liveFlyers,
     residents: residents?.length,
   };
 }

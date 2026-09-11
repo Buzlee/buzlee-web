@@ -30,7 +30,7 @@ export function FilterChips<T extends string>({
         return (
           <button
             className={cn(
-              "inline-flex h-8 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-semibold transition-colors",
+              "inline-flex h-8 items-center gap-1.5 rounded-full border px-3.5 text-[13px] font-semibold transition-[color,background-color,border-color,transform,scale] duration-150 ease-out-strong outline-none focus-visible:ring-2 focus-visible:ring-ring/50 active:scale-[0.97] motion-reduce:active:scale-100",
               active
                 ? "border-foreground bg-foreground text-background"
                 : "border-border bg-card text-muted-foreground hover:bg-secondary hover:text-foreground",
