@@ -34,6 +34,9 @@ yarn-error.log*
 .env*
 !.env.example
 
+# vendored at install time by scripts/copy-maplibre-worker.mjs
+/public/vendor
+
 # vercel
 .vercel
 

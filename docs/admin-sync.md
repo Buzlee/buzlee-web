@@ -319,6 +319,11 @@ model/types.ts and used for the sidebar nav counts.
     (`ui/flyer-map.tsx`; `ui/use-maplibre.ts` owns the map lifecycle). Pins
     are circle layers coloured from the theme tokens (`lib/theme-color.ts`
     reads `--color-primary` / `--color-foreground` / `--color-background`).
+    MapLibre ≥ 6 resolves its web worker from `import.meta.url`, which the
+    bundler rewrites (404 → blank map); `scripts/copy-maplibre-worker.mjs`
+    (postinstall) copies `maplibre-gl-worker.mjs` + `maplibre-gl-shared.mjs`
+    into the gitignored `public/vendor/maplibre-gl/` and `use-maplibre.ts`
+    calls `setWorkerUrl()` with that path.
     Clicking a cluster zooms to its expansion zoom; clicking a pin reports
     every flyer at that point → `FlyerStackPanel` (the app's colocated
     sheet). No realtime subscription (`useFlyerRealtimeSync` is not ported);

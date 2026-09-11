@@ -1,10 +1,15 @@
 "use client";
 
-import { Map as MapLibreMap } from "maplibre-gl";
+import { Map as MapLibreMap, setWorkerUrl } from "maplibre-gl";
 import { type RefObject, useEffect, useState } from "react";
 import { MAP_BOUNDARIES, MAP_ZOOM } from "../lib/map-constants";
 import { currentMapColorScheme, mapStyleUrl } from "../lib/map-style";
 import "maplibre-gl/dist/maplibre-gl.css";
+
+// MapLibre's default worker URL is derived from import.meta.url, which the
+// bundler rewrites — the request 404s and the map renders nothing. The worker
+// bundle is copied into public/ on postinstall (scripts/copy-maplibre-worker.mjs).
+setWorkerUrl("/vendor/maplibre-gl/maplibre-gl-worker.mjs");
 
 export type UseMapLibreOptions = {
   center?: [number, number];
