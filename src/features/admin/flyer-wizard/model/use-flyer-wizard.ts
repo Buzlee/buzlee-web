@@ -1,7 +1,8 @@
 // PORTED FROM buzlee-app/src/features/flyer-wizard/model/use-flyer-wizard.ts — keep in sync; see docs/admin-sync.md
 // Web fix: RN `Alert` prompts become the injected `confirm()` (promise-based
 // dialog); the AsyncStorage resume/autosave and `usePreventRemove` guard are
-// replaced by an in-memory draft plus a `beforeunload` prompt while dirty.
+// replaced by an in-memory draft plus a `beforeunload` prompt while dirty
+// (disarmed via `markSaved` once the draft is persisted).
 // There is no shared date/time sheet on the web.
 
 /**
@@ -372,6 +373,12 @@ export function useFlyerWizard(opts: UseFlyerWizardOptions): FlyerWizardApi {
     setEventFormAttempted(true);
   }, []);
 
+  // The draft is on the server now; the guard compares against the initial
+  // snapshot, so without this a post-save navigation still looks "dirty".
+  const markSaved = useCallback(() => {
+    exitingRef.current = true;
+  }, []);
+
   const actions = useMemo<FlyerWizardActions>(
     () => ({
       patchDraft,
@@ -390,6 +397,7 @@ export function useFlyerWizard(opts: UseFlyerWizardOptions): FlyerWizardApi {
       done,
       exit,
       markEventFormAttempted,
+      markSaved,
     }),
     [
       patchDraft,
@@ -408,6 +416,7 @@ export function useFlyerWizard(opts: UseFlyerWizardOptions): FlyerWizardApi {
       done,
       exit,
       markEventFormAttempted,
+      markSaved,
     ],
   );
 

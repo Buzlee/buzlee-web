@@ -98,6 +98,7 @@ function FlyerWizardSession({
     draft: wizard.draft,
     onSuccess: (message) => {
       toast.success(message);
+      wizard.actions.markSaved();
       onDismissSuccess();
     },
     onError: (message) => toast.error(message),
@@ -115,6 +116,7 @@ function FlyerWizardSession({
     try {
       await mutate();
       toast.success(successMessage);
+      wizard.actions.markSaved();
       onDismissSuccess();
     } catch (error) {
       console.error(
@@ -265,8 +267,11 @@ export function FlyerWizardScreen({
     isLoading: flyerLoading,
     error,
   } = useFlyer(resolvedFlyerId);
-  const { data: flyerTagsData = [], isLoading: tagsLoading } =
-    useFlyerTags(resolvedFlyerId);
+  const {
+    data: flyerTagsData = [],
+    isLoading: tagsLoading,
+    error: tagsError,
+  } = useFlyerTags(resolvedFlyerId);
 
   const existingFlyer = isEditMode ? (fetchedFlyer ?? null) : null;
   const flyerTagIds = useMemo(
@@ -274,11 +279,16 @@ export function FlyerWizardScreen({
     [flyerTagsData],
   );
 
-  if (isEditMode && (flyerLoading || tagsLoading) && !existingFlyer) {
+  // The session seeds its draft once from `flyerTagIds`, so it must not mount
+  // until the tags query has settled — a cached flyer would otherwise start
+  // the draft with no tags and Save would wipe them.
+  if (isEditMode && (flyerLoading || tagsLoading)) {
     return <CenteredMessage>Loading…</CenteredMessage>;
   }
   if (isEditMode && error)
     return <CenteredMessage>Failed to load flyer.</CenteredMessage>;
+  if (isEditMode && tagsError)
+    return <CenteredMessage>Failed to load flyer tags.</CenteredMessage>;
   if (isEditMode && !existingFlyer)
     return <CenteredMessage>Flyer not found.</CenteredMessage>;
   if (isEditMode && existingFlyer && existingFlyer.business_id !== businessId) {

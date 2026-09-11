@@ -19,7 +19,7 @@ import {
   invokeMemberFlyerNotify,
   toMemberFlyerNotifyRecord,
 } from "@/entities/flyer/lib/send-member-flyer-notification";
-import type { FlyerWithDetails } from "@/entities/flyer/model/types";
+import type { Flyer, FlyerWithDetails } from "@/entities/flyer/model/types";
 import { coverPhotoUploadBlob, mediaUploadBlob } from "../lib/media";
 import { buildUpsertInput } from "../lib/serialize-flyer-draft";
 import { isDraftPublishable } from "../lib/validate-wizard-step";
@@ -36,7 +36,7 @@ export type UseFlyerWizardSubmitOptions = {
 
 export type FlyerWizardSubmit = {
   submitting: boolean;
-  /** Create: insert as live. Edit: draft → live (new `live_at`). */
+  /** Create: insert as draft, live once the media is uploaded. Edit: draft → live (new `live_at`). */
   publish: () => Promise<void>;
   /** Create: insert as draft. Edit: move to / keep as draft. */
   saveDraft: () => Promise<void>;
@@ -169,12 +169,17 @@ export function useFlyerWizardSubmit(
         ? await coverPhotoUploadBlob(draft.coverPhoto)
         : null;
 
+      // The storage path is keyed by the flyer id, so the row has to exist
+      // before the upload. Insert it as a draft and flip it live only once the
+      // media is in place: a live row with `media_url: ''` must never exist,
+      // even transiently or when the rollback below fails.
       const input = await buildUpsertInput(draft, {
         businessId,
-        status,
+        status: "draft",
         mediaType: media.type,
       });
       const flyer = await queries.upsertFlyerWithEvents(input);
+      let saved: Flyer = flyer;
 
       try {
         const mediaUrl = await queries.uploadFlyerMedia(
@@ -191,9 +196,14 @@ export function useFlyerWizardSubmit(
           );
         }
 
-        await queries.updateFlyer(flyer.id, {
+        // Same shape as `publishFlyer`: `expires_at` is derived by the DB
+        // trigger on the status change.
+        saved = await queries.updateFlyer(flyer.id, {
           media_url: mediaUrl,
           cover_photo_url: coverPhotoUrl,
+          ...(status === "live"
+            ? { status: "live", live_at: new Date().toISOString() }
+            : {}),
         });
 
         if (draft.tagIds.length > 0) {
@@ -201,7 +211,7 @@ export function useFlyerWizardSubmit(
         }
       } catch (error) {
         // Roll back the inserted row: without this, "please try again" retries
-        // create duplicates and a media-less flyer stays live in feeds.
+        // create duplicates (the row is still a draft, so it never reached feeds).
         await queries.deleteFlyer(flyer.id).catch((rollbackError) => {
           console.error("[FlyerWizard] Rollback delete failed:", rollbackError);
         });
@@ -217,7 +227,7 @@ export function useFlyerWizardSubmit(
         await invokeMemberFlyerNotify({
           type: "INSERT",
           table: "flyers",
-          record: toMemberFlyerNotifyRecord(flyer),
+          record: toMemberFlyerNotifyRecord(saved),
         });
       }
 
@@ -234,13 +244,14 @@ export function useFlyerWizardSubmit(
       const { status, keepLiveAt } = resolveTarget(intent, existing);
 
       // Upload changed files first so the row never points at a missing asset.
+      // The previous objects stay in storage until the save has succeeded: a
+      // failed RPC must leave the flyer's current artwork intact.
       let mediaUrl = existing.media_url;
       if (draft.mediaChanged) {
         mediaUrl = await queries.uploadFlyerMedia(
           existing.id,
           await mediaUploadBlob(media),
           media.type,
-          existing.media_url,
         );
       }
 
@@ -250,15 +261,9 @@ export function useFlyerWizardSubmit(
           ? await queries.uploadFlyerCoverPhoto(
               existing.id,
               await coverPhotoUploadBlob(draft.coverPhoto),
-              existing.cover_photo_url ?? undefined,
             )
           : null;
       }
-      // A removed cover is deleted only after the row no longer references it.
-      const removedCoverUrl =
-        draft.coverPhotoChanged && !draft.coverPhoto
-          ? existing.cover_photo_url
-          : null;
 
       const input = await buildUpsertInput(draft, {
         businessId,
@@ -269,9 +274,40 @@ export function useFlyerWizardSubmit(
         mediaUrl,
         coverPhotoUrl,
       });
-      const updated = await queries.upsertFlyerWithEvents(input);
+      let updated: Flyer;
+      try {
+        updated = await queries.upsertFlyerWithEvents(input);
+      } catch (error) {
+        // The row still points at the old assets; drop the orphaned uploads.
+        await Promise.all([
+          mediaUrl !== existing.media_url
+            ? queries.deleteFlyerMedia(mediaUrl)
+            : null,
+          coverPhotoUrl && coverPhotoUrl !== existing.cover_photo_url
+            ? queries.deleteFlyerCoverPhoto(coverPhotoUrl)
+            : null,
+        ]).catch((cleanupError) => {
+          console.error("[FlyerWizard] Upload cleanup failed:", cleanupError);
+        });
+        throw error;
+      }
       await tagQueries.setFlyerTags(existing.id, draft.tagIds);
-      if (removedCoverUrl) await queries.deleteFlyerCoverPhoto(removedCoverUrl);
+
+      // Replaced / removed assets are deleted only once the row no longer
+      // references them. Best-effort: a leftover object is not a failed save.
+      await Promise.all([
+        draft.mediaChanged && existing.media_url
+          ? queries.deleteFlyerMedia(existing.media_url)
+          : null,
+        draft.coverPhotoChanged && existing.cover_photo_url
+          ? queries.deleteFlyerCoverPhoto(existing.cover_photo_url)
+          : null,
+      ]).catch((cleanupError) => {
+        console.error(
+          "[FlyerWizard] Stale asset cleanup failed:",
+          cleanupError,
+        );
+      });
 
       // The RPC returns the bare row (no business/category/events relations),
       // so the detail cache is invalidated rather than written directly.

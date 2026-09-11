@@ -53,6 +53,12 @@ export interface FlyerWizardActions {
   done: () => void;
   /** Leave the wizard, confirming first when there are unsaved changes. */
   exit: () => void;
+  /**
+   * Disarm the unsaved-changes guard after the draft was persisted (or the
+   * flyer was unpublished / deleted). Call before the screen navigates away so
+   * a full-page navigation does not trigger the browser's "Leave site?" prompt.
+   */
+  markSaved: () => void;
   /** Marks the open event form as attempted (drives inline errors). */
   markEventFormAttempted: () => void;
 }
