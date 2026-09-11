@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
 import {
   Sheet,
   SheetContent,
@@ -192,31 +192,20 @@ export function FilterSheet({
               value={datePreset === "all" ? null : datePreset}
             />
             <div className="flex flex-col gap-2">
-              <div className="flex items-center justify-between">
-                <label
-                  className="text-sm font-medium text-foreground"
-                  htmlFor="discovery-filter-date"
-                >
-                  Specific date
-                </label>
-                {dateRange.from ? (
-                  <button
-                    className="text-sm text-primary hover:underline"
-                    onClick={() => setDateRange(null, null)}
-                    type="button"
-                  >
-                    Clear
-                  </button>
-                ) : null}
-              </div>
-              <Input
+              <label
+                className="text-sm font-medium text-foreground"
+                htmlFor="discovery-filter-date"
+              >
+                Specific date
+              </label>
+              <DatePicker
+                clearable
                 id="discovery-filter-date"
-                onChange={(event) => {
-                  const d = event.target.value;
+                onChange={(d) => {
                   if (d) setDateRange(`${d}T00:00:00`, `${d}T23:59:59`);
                   else setDateRange(null, null);
                 }}
-                type="date"
+                placeholder="Any date"
                 value={specificDate}
               />
             </div>

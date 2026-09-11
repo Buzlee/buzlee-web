@@ -214,8 +214,11 @@ model/types.ts and used for the sidebar nav counts.
     `confirm()` (`features/admin/dialogs/use-confirm.tsx`). The AsyncStorage
     autosave / resume and `usePreventRemove` are **not** ported: drafts live
     in memory for the page's lifetime and a `beforeunload` prompt guards
-    reloads. No shared date/time sheet — steps use native
-    `<input type="date|time">`.
+    reloads. No shared date/time sheet — the web stand-ins are
+    `components/ui/date-picker.tsx` (shadcn `Calendar` in a popover) and
+    `components/ui/time-picker.tsx` (Popover + `Command` combobox: 15-min
+    slots, any typed minute, duration hints on a same-day end time). The
+    discovery filter's specific date uses the same `DatePicker`.
   - `model/use-flyer-wizard-submit.ts` — same sequence as the app (encode →
     RPC upsert → media/cover upload → patch URLs → tags → invalidate →
     member notify; delete-rollback on a failed create). Uploads take Blobs

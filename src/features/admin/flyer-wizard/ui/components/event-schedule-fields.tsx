@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Input } from "@/components/ui/input";
+import { DatePicker } from "@/components/ui/date-picker";
+import { TimePicker } from "@/components/ui/time-picker";
 import { WEEKDAY_CODES } from "@/entities/flyer/lib/flyer-recurrence";
 import { Field } from "@/features/admin/businesses/business-form";
 import { formatDateLocal, parseDateLocal } from "@/shared/lib/date-local";
@@ -85,7 +86,8 @@ function weekdayCodeFor(date: string): WeekdayCode | null {
  * Schedule fields shared by the single-event Schedule step (stacked layout,
  * "Add end date/time" switches) and the multi-event Event form (two-column
  * layout, end fields always visible). Web port of the app's
- * `EventScheduleFields` over native date / time inputs.
+ * `EventScheduleFields` over the shadcn `DatePicker` / `TimePicker` (the
+ * web stand-ins for the app's date and time spinner sheets).
  */
 export function EventScheduleFields({
   idPrefix,
@@ -125,7 +127,14 @@ export function EventScheduleFields({
   }, [value.recurrenceUntil]);
 
   const today = formatDateLocal(new Date());
+  // New events start today or later, but an existing event that already
+  // began (editing a live series) keeps its own start as the floor so the
+  // saved date stays selectable instead of being locked out.
+  const earliestStart =
+    value.startDate && value.startDate < today ? value.startDate : today;
   const startMinimum = value.startDate || today;
+  // End-time slots show the duration from the start while both fall on one day.
+  const sameDay = !value.endDate || value.endDate === value.startDate;
 
   const handleRecurrenceChange = (recurrence: RecurrencePreset) => {
     const patch: Partial<EventDraft> = { recurrence };
@@ -150,13 +159,12 @@ export function EventScheduleFields({
       htmlFor={id("start-date")}
       label={`${labels.startDate} *`}
     >
-      <Input
+      <DatePicker
         aria-invalid={Boolean(issues.startDate)}
         disabled={disabled}
         id={id("start-date")}
-        min={today}
-        onChange={(e) => onChange({ startDate: e.target.value })}
-        type="date"
+        min={earliestStart}
+        onChange={(startDate) => onChange({ startDate })}
         value={value.startDate}
       />
     </Field>
@@ -168,13 +176,14 @@ export function EventScheduleFields({
       htmlFor={id("end-date")}
       label={labels.endDate}
     >
-      <Input
+      <DatePicker
         aria-invalid={Boolean(issues.endDate)}
+        clearable={!stacked}
         disabled={disabled}
         id={id("end-date")}
         min={startMinimum}
-        onChange={(e) => onChange({ endDate: e.target.value })}
-        type="date"
+        onChange={(endDate) => onChange({ endDate })}
+        placeholder={stacked ? "Select date" : "Same day"}
         value={value.endDate}
       />
     </Field>
@@ -186,12 +195,13 @@ export function EventScheduleFields({
       htmlFor={id("start-time")}
       label={labels.startTime}
     >
-      <Input
+      <TimePicker
         aria-invalid={Boolean(issues.startTime)}
+        clearable
         disabled={disabled}
         id={id("start-time")}
-        onChange={(e) => onChange({ startTime: e.target.value.slice(0, 5) })}
-        type="time"
+        onChange={(startTime) => onChange({ startTime })}
+        placeholder={stacked ? "Select time" : "All day"}
         value={value.startTime}
       />
     </Field>
@@ -202,25 +212,25 @@ export function EventScheduleFields({
       htmlFor={id("end-time")}
       label={labels.endTime}
     >
-      <Input
+      <TimePicker
         aria-invalid={Boolean(issues.endTime)}
+        clearable={!stacked}
         disabled={disabled}
         id={id("end-time")}
-        onChange={(e) => onChange({ endTime: e.target.value.slice(0, 5) })}
-        type="time"
+        onChange={(endTime) => onChange({ endTime })}
+        referenceTime={sameDay ? value.startTime : undefined}
         value={value.endTime}
       />
     </Field>
   );
 
   const untilInput = (
-    <Input
+    <DatePicker
       aria-invalid={Boolean(issues.recurrenceUntil)}
       disabled={disabled}
       id={id("until")}
       min={startMinimum}
-      onChange={(e) => onChange({ recurrenceUntil: e.target.value })}
-      type="date"
+      onChange={(recurrenceUntil) => onChange({ recurrenceUntil })}
       value={value.recurrenceUntil}
     />
   );

@@ -79,6 +79,81 @@
   }
 }
 
+/* Calendar month change (react-day-picker `animate`): a short directional
+   crossfade — 8px shift, 2px blur — rather than a full-width slide. Both
+   months share one structure, so a hint of direction is all the eye needs,
+   and the blur merges the overlapping grids into one change. Next moves
+   content left; Previous moves it right. Keyboard paging stays instant (the
+   library skips the animation while a day has focus).
+   These are single classes because the library applies them with
+   `classList.add`. It strips the entering classes when the outgoing caption
+   finishes, so enter and exit must share one duration. Reduced motion keeps
+   the crossfade and drops the shift and blur. */
+@layer components {
+  .calendar-month-in-next {
+    animation: calendar-month-in-next 200ms var(--ease-out-strong) both;
+  }
+  .calendar-month-in-prev {
+    animation: calendar-month-in-prev 200ms var(--ease-out-strong) both;
+  }
+  .calendar-month-out-next {
+    animation: calendar-month-out-next 200ms var(--ease-out-strong) both;
+  }
+  .calendar-month-out-prev {
+    animation: calendar-month-out-prev 200ms var(--ease-out-strong) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .calendar-month-in-next,
+    .calendar-month-in-prev {
+      animation-name: calendar-fade-in;
+    }
+    .calendar-month-out-next,
+    .calendar-month-out-prev {
+      animation-name: calendar-fade-out;
+    }
+  }
+}
+
+@keyframes calendar-month-in-next {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+    filter: blur(2px);
+  }
+}
+@keyframes calendar-month-in-prev {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+    filter: blur(2px);
+  }
+}
+@keyframes calendar-month-out-next {
+  to {
+    opacity: 0;
+    transform: translateX(-8px);
+    filter: blur(2px);
+  }
+}
+@keyframes calendar-month-out-prev {
+  to {
+    opacity: 0;
+    transform: translateX(8px);
+    filter: blur(2px);
+  }
+}
+@keyframes calendar-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes calendar-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
 @layer base {
   :root {
     --radius: 0.5rem;
