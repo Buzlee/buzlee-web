@@ -8,6 +8,7 @@ import {
 import { buildNativeOpenUrl } from "@/shared/lib/native-deeplink";
 import { fetchPublicBusiness } from "@/shared/lib/supabase-public";
 import { OpenInAppPanel } from "@/shared/ui/open-in-app-panel";
+import { ShareContext } from "@/shared/ui/share-context";
 
 type Params = { id: string };
 
@@ -61,9 +62,11 @@ export default async function BusinessSharePage({
   const { id } = await params;
   const business = await fetchPublicBusiness(id);
   const nativeHref = buildNativeOpenUrl(`business/${id}`);
+  const campaign = { name: "share_business", id } as const;
 
   return (
     <div className="flex min-h-full flex-1 flex-col items-center bg-primary/5 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))]">
+      <ShareContext businessId={id} />
       <Image
         src="/logo-full.svg"
         alt="Buzlee"
@@ -119,8 +122,9 @@ export default async function BusinessSharePage({
               ? "Open Buzlee below, or install it from a store."
               : "It may have been removed. Get Buzlee to discover local businesses around you."
           }
-          iosStoreUrl={getIosAppStoreUrl()}
-          androidStoreUrl={getAndroidPlayStoreUrl()}
+          iosStoreUrl={getIosAppStoreUrl(campaign)}
+          androidStoreUrl={getAndroidPlayStoreUrl(campaign)}
+          businessId={id}
         />
       </div>
     </div>

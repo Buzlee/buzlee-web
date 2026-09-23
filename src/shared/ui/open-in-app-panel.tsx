@@ -8,8 +8,16 @@ import {
   CardHeader,
 } from "@/components/ui/card";
 import { cn } from "@/lib/utils";
+import {
+  type ShareIds,
+  shareProperties,
+  track,
+  type WebEventMap,
+} from "@/shared/lib/posthog-provider";
 
-type OpenInAppPanelProps = {
+type OpenInAppTarget = WebEventMap["open in app tapped"]["target"];
+
+type OpenInAppPanelProps = ShareIds & {
   nativeHref: string;
   heading: string;
   subheading?: string;
@@ -23,7 +31,17 @@ export function OpenInAppPanel({
   subheading,
   iosStoreUrl,
   androidStoreUrl,
+  flyerId,
+  businessId,
+  flyerEventId,
 }: OpenInAppPanelProps) {
+  // Record the tap and let the anchor navigate (no preventDefault).
+  const tapped = (target: OpenInAppTarget) => () =>
+    track("open in app tapped", {
+      target,
+      ...shareProperties({ flyerId, businessId, flyerEventId }),
+    });
+
   return (
     <Card
       className={cn(
@@ -62,7 +80,9 @@ export function OpenInAppPanel({
             "hover:shadow-lg hover:shadow-primary/20 active:scale-[0.99]",
           )}
         >
-          <a href={nativeHref}>Open in app</a>
+          <a href={nativeHref} onClick={tapped("app")}>
+            Open in app
+          </a>
         </Button>
 
         <div className="flex flex-col gap-3 border-t border-border/50 pt-5">
@@ -81,7 +101,12 @@ export function OpenInAppPanel({
                 "sm:h-11 sm:min-h-11 sm:flex-1 sm:text-sm",
               )}
             >
-              <a href={iosStoreUrl} target="_blank" rel="noopener noreferrer">
+              <a
+                href={iosStoreUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={tapped("app_store")}
+              >
                 App Store
               </a>
             </Button>
@@ -100,6 +125,7 @@ export function OpenInAppPanel({
                 href={androidStoreUrl}
                 target="_blank"
                 rel="noopener noreferrer"
+                onClick={tapped("play_store")}
               >
                 Google Play
               </a>

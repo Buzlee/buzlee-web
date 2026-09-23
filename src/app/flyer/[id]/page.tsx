@@ -13,14 +13,17 @@ import {
   getIosAppStoreUrl,
 } from "@/shared/config/store-links";
 import { buildNativeOpenUrl } from "@/shared/lib/native-deeplink";
+import { firstSearchParam } from "@/shared/lib/search-params-to-query";
 import {
   fetchPublicFlyer,
   formatEventDate,
   publicFlyerImageUrl,
 } from "@/shared/lib/supabase-public";
 import { OpenInAppPanel } from "@/shared/ui/open-in-app-panel";
+import { ShareContext } from "@/shared/ui/share-context";
 
 type Params = { id: string };
+type SearchParams = Record<string, string | string[] | undefined>;
 
 export async function generateMetadata({
   params,
@@ -66,12 +69,17 @@ export async function generateMetadata({
 
 export default async function FlyerSharePage({
   params,
+  searchParams,
 }: {
   params: Promise<Params>;
+  searchParams: Promise<SearchParams>;
 }) {
-  const { id } = await params;
+  const [{ id }, sp] = await Promise.all([params, searchParams]);
+  // Shared from the app as `/flyer/<id>?event=<flyerEventId>` (one event of a multi-event flyer).
+  const flyerEventId = firstSearchParam(sp.event) || undefined;
   const flyer = await fetchPublicFlyer(id);
-  const nativeHref = buildNativeOpenUrl(`flyer/${id}`);
+  const nativeHref = buildNativeOpenUrl(`flyer/${id}`, { event: flyerEventId });
+  const campaign = { name: "share_flyer", id } as const;
 
   const image = flyer ? publicFlyerImageUrl(flyer) : null;
   const eventDate = flyer ? formatEventDate(flyer.event_date) : null;
@@ -79,6 +87,7 @@ export default async function FlyerSharePage({
 
   return (
     <div className="flex min-h-full flex-1 flex-col items-center bg-primary/5 px-4 pt-[max(1rem,env(safe-area-inset-top))] pb-[max(2.5rem,env(safe-area-inset-bottom))]">
+      <ShareContext flyerId={id} flyerEventId={flyerEventId} />
       <Image
         src="/logo-full.svg"
         alt="Buzlee"
@@ -133,8 +142,10 @@ export default async function FlyerSharePage({
               ? "Open Buzlee below, or install it from a store."
               : "It may have ended or been removed. Get Buzlee to discover what's happening around you."
           }
-          iosStoreUrl={getIosAppStoreUrl()}
-          androidStoreUrl={getAndroidPlayStoreUrl()}
+          iosStoreUrl={getIosAppStoreUrl(campaign)}
+          androidStoreUrl={getAndroidPlayStoreUrl(campaign)}
+          flyerId={id}
+          flyerEventId={flyerEventId}
         />
       </div>
     </div>
