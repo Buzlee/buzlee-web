@@ -22,6 +22,8 @@ Follow this order. Details of the architecture live in `buzlee-app` under `docs/
   | `BUZLEE_APPLE_APP_IDS` | Comma-separated `TEAMID.bundleId` (e.g. production `com.buzlee`). Powers `/.well-known/apple-app-site-association`. |
   | `BUZLEE_ANDROID_PACKAGE_NAME` | Default `com.buzlee` if unset. |
   | `BUZLEE_ANDROID_SHA256` | Comma-separated SHA-256 cert fingerprints for App Links. |
+  | `NEXT_PUBLIC_POSTHOG_KEY` | PostHog project token (same value as buzlee-app `POSTHOG_API_KEY`). Set for Production, Preview and Development. Unset = analytics off. See § 7. |
+  | `NEXT_PUBLIC_APP_ENV` | `production` / `preview` / `development`, matching the Vercel environment. Sent as `app_env` on every PostHog event. |
 
 - Redeploy after changing env.
 
@@ -49,3 +51,12 @@ After deploy:
 
 - Point transactional emails to `https://app.buzlee.com/open?…` when you want desktop users on that path.
 - Remove legacy `buzlee.app` associated domains / intent filters in the app after traffic has moved.
+
+## 7. Analytics (PostHog) on share pages
+
+`src/shared/lib/posthog-provider.tsx` (mounted in `src/app/layout.tsx`) initialises `posthog-js` on the client when `NEXT_PUBLIC_POSTHOG_KEY` is set, with autocapture and session recording off, and registers `surface = web` and `app_env = NEXT_PUBLIC_APP_ENV` on every event. Both variables are `NEXT_PUBLIC_*`, so they are inlined at build time: redeploy after changing them.
+
+- `$pageview` fires on every page. On `/flyer/[id]` (and `/flyer/[id]/checkin`) and `/business/[id]`, `<ShareContext>` registers `flyer_id` / `flyer_event_id` (from `?event=`) / `business_id` first so the pageview carries them.
+- `open in app tapped` fires from the "Open in app", "App Store" and "Google Play" buttons with `target` = `app` / `app_store` / `play_store` plus the same ids.
+- Store links carry attribution: App Store `?ct=share_flyer|share_business`, Play `&referrer=utm_source%3Dshare%26utm_content%3D<id>`.
+- Event catalog and dashboards: `buzlee-app/docs/POSTHOG_TRACKING_PLAN.md` (WP4).

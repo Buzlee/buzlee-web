@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -48,6 +49,9 @@
   --color-chart-4: hsl(var(--chart-4));
   --color-chart-5: hsl(var(--chart-5));
 
+  /* shadcn sidebar expects --color-sidebar (bg-sidebar); map it to the
+     existing --sidebar-background HSL var. */
+  --color-sidebar: hsl(var(--sidebar-background));
   --color-sidebar-background: hsl(var(--sidebar-background));
   --color-sidebar-foreground: hsl(var(--sidebar-foreground));
   --color-sidebar-primary: hsl(var(--sidebar-primary));
@@ -56,6 +60,98 @@
   --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
   --color-sidebar-border: hsl(var(--sidebar-border));
   --color-sidebar-ring: hsl(var(--sidebar-ring));
+}
+
+@theme {
+  /* Motion curves. Built-in CSS easings are too weak for UI; these are the
+     two we use everywhere (enter/exit + press, and sheets). */
+  --ease-out-strong: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-sheet: cubic-bezier(0.32, 0.72, 0, 1);
+
+  /* Content swap (e.g. admin Inbox "Next up" skip): opacity-only, <150ms, so
+     it stops content from popping without slowing a repeated action. */
+  --animate-fade-in: fade-in 150ms var(--ease-out-strong);
+
+  @keyframes fade-in {
+    from {
+      opacity: 0;
+    }
+  }
+}
+
+/* Calendar month change (react-day-picker `animate`): a short directional
+   crossfade — 8px shift, 2px blur — rather than a full-width slide. Both
+   months share one structure, so a hint of direction is all the eye needs,
+   and the blur merges the overlapping grids into one change. Next moves
+   content left; Previous moves it right. Keyboard paging stays instant (the
+   library skips the animation while a day has focus).
+   These are single classes because the library applies them with
+   `classList.add`. It strips the entering classes when the outgoing caption
+   finishes, so enter and exit must share one duration. Reduced motion keeps
+   the crossfade and drops the shift and blur. */
+@layer components {
+  .calendar-month-in-next {
+    animation: calendar-month-in-next 200ms var(--ease-out-strong) both;
+  }
+  .calendar-month-in-prev {
+    animation: calendar-month-in-prev 200ms var(--ease-out-strong) both;
+  }
+  .calendar-month-out-next {
+    animation: calendar-month-out-next 200ms var(--ease-out-strong) both;
+  }
+  .calendar-month-out-prev {
+    animation: calendar-month-out-prev 200ms var(--ease-out-strong) both;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .calendar-month-in-next,
+    .calendar-month-in-prev {
+      animation-name: calendar-fade-in;
+    }
+    .calendar-month-out-next,
+    .calendar-month-out-prev {
+      animation-name: calendar-fade-out;
+    }
+  }
+}
+
+@keyframes calendar-month-in-next {
+  from {
+    opacity: 0;
+    transform: translateX(8px);
+    filter: blur(2px);
+  }
+}
+@keyframes calendar-month-in-prev {
+  from {
+    opacity: 0;
+    transform: translateX(-8px);
+    filter: blur(2px);
+  }
+}
+@keyframes calendar-month-out-next {
+  to {
+    opacity: 0;
+    transform: translateX(-8px);
+    filter: blur(2px);
+  }
+}
+@keyframes calendar-month-out-prev {
+  to {
+    opacity: 0;
+    transform: translateX(8px);
+    filter: blur(2px);
+  }
+}
+@keyframes calendar-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes calendar-fade-out {
+  to {
+    opacity: 0;
+  }
 }
 
 @layer base {

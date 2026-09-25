@@ -18,3 +18,10 @@ export function searchParamsToQueryString(
   const s = qs.toString();
   return s;
 }
+
+/** First value of a Next.js `searchParams` entry, or "" when absent. */
+export function firstSearchParam(value: string | string[] | undefined): string {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value) && value[0]) return value[0];
+  return "";
+}
