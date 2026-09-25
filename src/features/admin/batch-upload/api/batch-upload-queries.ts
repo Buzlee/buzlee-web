@@ -1,7 +1,7 @@
 // PORTED FROM buzlee-app/src/features/admin-batch-upload/api/batch-upload-queries.ts — keep in sync; see docs/admin-sync.md
 import { createUnclaimedBusiness } from "@/entities/admin";
 import type { Business } from "@/entities/business/model/types";
-import { upsertFlyerWithEvents } from "@/entities/flyer/api/flyer-queries";
+import { saveFlyerWithTags } from "@/entities/flyer/api/flyer-queries";
 import { combineDateAndTime } from "@/entities/flyer/lib/flyer-datetime";
 import type { Flyer, FlyerRpcInput } from "@/entities/flyer/model/types";
 import { supabase } from "@/shared/lib/supabase";
@@ -153,7 +153,7 @@ async function uploadToFlyerMedia(
 
 /**
  * Create one flyer from a resolved batch row:
- * download media → insert flyer → upload media into flyer-media → attach URLs → tags.
+ * download media → insert flyer with its tags → upload media into flyer-media → attach URLs.
  * If a step after the insert fails, the flyer row is deleted so no broken
  * flyer (missing media) is left visible in feeds.
  */
@@ -177,9 +177,9 @@ export async function uploadFlyerRow(
     : null;
   const isLive = row.status === "live";
 
-  // Batch rows are single-event flyers. The RPC writes the flyer and its one
-  // event atomically; expires_at and the schedule summary columns are derived
-  // in the DB from the event.
+  // Batch rows are single-event flyers. The RPC writes the flyer, its one
+  // event and its tags atomically; expires_at and the schedule summary columns
+  // are derived in the DB from the event.
   const flyerInput: FlyerRpcInput = {
     business_id: businessId,
     title: row.title,
@@ -200,20 +200,23 @@ export async function uploadFlyerRow(
     flyer_type: "single",
   };
 
-  const flyer = await upsertFlyerWithEvents({
-    flyer: flyerInput,
-    events: [
-      {
-        title: row.title,
-        description: null,
-        starts_at: eventDateTime,
-        ends_at: eventEndDateTime,
-        recurrence_rule: null,
-        recurrence_until: null,
-        sort_order: 0,
-      },
-    ],
-  });
+  const flyer = await saveFlyerWithTags(
+    {
+      flyer: flyerInput,
+      events: [
+        {
+          title: row.title,
+          description: null,
+          starts_at: eventDateTime,
+          ends_at: eventEndDateTime,
+          recurrence_rule: null,
+          recurrence_until: null,
+          sort_order: 0,
+        },
+      ],
+    },
+    { tagIds, newTagNames: [] },
+  );
 
   const uploadedPaths: string[] = [];
 
@@ -245,13 +248,6 @@ export async function uploadFlyerRow(
       .single();
 
     if (updateError) throw updateError;
-
-    if (tagIds.length > 0) {
-      const { error: tagsError } = await supabase
-        .from("flyer_tags")
-        .insert(tagIds.map((tagId) => ({ flyer_id: flyer.id, tag_id: tagId })));
-      if (tagsError) throw tagsError;
-    }
 
     return updated;
   } catch (error) {

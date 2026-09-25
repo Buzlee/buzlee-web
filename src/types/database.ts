@@ -1485,6 +1485,10 @@ export type Database = {
           isSetofReturn: true;
         };
       };
+      create_or_get_tag: {
+        Args: { p_name: string };
+        Returns: Database["public"]["Tables"]["tags"]["Row"];
+      };
       current_resident_id: { Args: never; Returns: string };
       current_user_role: { Args: never; Returns: string };
       debug_profile_state: { Args: { user_id: string }; Returns: Json };
@@ -1611,6 +1615,15 @@ export type Database = {
       reject_business_claim: {
         Args: { p_claim_id: string; p_reason: string };
         Returns: string;
+      };
+      save_flyer_with_tags: {
+        Args: {
+          p_events: Json;
+          p_flyer: Json;
+          p_new_tag_names?: string[];
+          p_tag_ids?: string[];
+        };
+        Returns: Database["public"]["Tables"]["flyers"]["Row"];
       };
       submit_business_claim_with_token: {
         Args: {

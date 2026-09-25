@@ -14,6 +14,7 @@ import {
 import { useTags, useTowns } from "@/entities/catalog/api/use-catalog";
 import { SearchInput } from "@/features/admin/components/search-input";
 import { ChoiceChips } from "@/features/admin/flyer-wizard/ui/components/choice-chips";
+import type { TagFacet } from "../lib/tag-facets";
 import { DATE_PRESETS, TIME_OF_DAY_OPTIONS } from "../model/filter-types";
 import { useFilterStore } from "../model/use-filter-state";
 
@@ -51,7 +52,8 @@ function ChipPicker({
   leading,
   labelPrefix = "",
 }: {
-  items: { id: string; name: string }[];
+  /** `count` is shown after the name when present (tag facets). */
+  items: { id: string; name: string; count?: number }[];
   selectedIds: string[];
   onToggle: (id: string) => void;
   visibleCount: number;
@@ -99,7 +101,10 @@ function ChipPicker({
           }}
           options={visible.map((item) => ({
             value: item.id,
-            label: `${labelPrefix}${item.name}`,
+            label:
+              item.count === undefined
+                ? `${labelPrefix}${item.name}`
+                : `${labelPrefix}${item.name} · ${item.count}`,
           }))}
           value={selectedIds}
         />
@@ -125,9 +130,12 @@ function ChipPicker({
 export function FilterSheet({
   open,
   onOpenChange,
+  tagFacets,
 }: {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  /** Tags on the screen's flyers (every filter but tags applied), from `useTagFacetedFlyers`. */
+  tagFacets: TagFacet[];
 }) {
   const [tagSearch, setTagSearch] = useState("");
   const [townSearch, setTownSearch] = useState("");
@@ -150,6 +158,21 @@ export function FilterSheet({
 
   const specificDate = dateRange.from ? dateRange.from.slice(0, 10) : "";
 
+  // Only tags on the flyers this screen shows. A selected tag that no longer
+  // matches anything stays listed with a zero count so it can be turned off.
+  const tagOptions = useMemo(() => {
+    const offered = new Set(tagFacets.map((facet) => facet.id));
+    const stale: TagFacet[] = selectedTagIds
+      .filter((id) => !offered.has(id))
+      .map((id) => ({
+        id,
+        name: allTags.find((t) => t.id === id)?.name ?? "",
+        count: 0,
+      }))
+      .filter((facet) => facet.name);
+    return [...stale, ...tagFacets];
+  }, [tagFacets, selectedTagIds, allTags]);
+
   function handleClearAll() {
     clearAll();
     setTagSearch("");
@@ -168,13 +191,18 @@ export function FilterSheet({
 
         <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto p-4">
           <Section title="Tags">
+            {tagOptions.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                No tags on the events that match your filters.
+              </p>
+            ) : null}
             <ChipPicker
-              items={allTags}
+              items={tagOptions}
               labelPrefix="#"
               onSearch={setTagSearch}
               onToggle={toggleTagId}
               search={tagSearch}
-              searchPlaceholder="Search for an event"
+              searchPlaceholder="Search tags"
               selectedIds={selectedTagIds}
               visibleCount={VISIBLE_TAG_COUNT}
             />

@@ -102,7 +102,9 @@ provenance header added.
 | `src/features/admin-batch-upload/ui/row-field-defs.ts` | same | verbatim shape; RN `keyboardType` / `autoCapitalize` → HTML `inputMode` / `type` |
 | `src/features/filter/model/types.ts` | `src/features/admin/discovery/model/filter-types.ts` | verbatim (`DATE_PRESETS`, `TIME_OF_DAY_OPTIONS`, `DEFAULT_FILTER_STATE`) |
 | `src/features/filter/model/use-filter-state.ts` | `src/features/admin/discovery/model/use-filter-state.ts` | web adaptation — module store + `useSyncExternalStore` instead of Zustand; same `useFilterStore(selector)` shape and actions |
-| `src/features/discovery/lib/filter-state-to-flyer-filters.ts` | `src/features/admin/discovery/lib/…` | verbatim |
+| `src/features/discovery/lib/filter-state-to-flyer-filters.ts` | `src/features/admin/discovery/lib/…` | verbatim (tags no longer mapped, 2026-09-25) |
+| `src/features/filter/lib/tag-facets.ts` | `src/features/admin/discovery/lib/tag-facets.ts` | verbatim (2026-09-25) |
+| `src/features/filter/model/use-tag-faceted-flyers.ts` | `src/features/admin/discovery/model/use-tag-faceted-flyers.ts` | verbatim (2026-09-25); the filter sheet lists only tags on the screen's flyers, with counts |
 | `src/features/discovery/lib/group-flyers-by-time-period.ts` | same | verbatim |
 | `src/features/map/lib/map-constants.ts` | same | web trim — `MAP_ZOOM`, `MAP_BOUNDARIES`, `NATIVE_CLUSTER` (carousel/marker sizing constants omitted) |
 | `src/features/map/lib/map-coordinates.ts` | same | web trim — `MapCoordinate`, `isValidCoordinate`, `coordinateFromFlyerLocation` |
@@ -220,8 +222,10 @@ model/types.ts and used for the sidebar nav counts.
     slots, any typed minute, duration hints on a same-day end time). The
     discovery filter's specific date uses the same `DatePicker`.
   - `model/use-flyer-wizard-submit.ts` — same sequence as the app (encode →
-    RPC upsert → media/cover upload → patch URLs → tags → invalidate →
-    member notify; delete-rollback on a failed create). Uploads take Blobs
+    `saveFlyerWithTags` RPC (flyer + events + tags in one transaction) →
+    media/cover upload → patch URLs → invalidate → member notify;
+    delete-rollback on a failed create). No tag creation, so `newTagNames`
+    is always empty. Uploads take Blobs
     from `lib/media.ts`: PDFs as-is, images re-encoded to JPEG (no crop,
     like the app's artwork picker), cover photos centre-cropped 2:3 like the
     app's `aspect: [2, 3]`. A removed cover is deleted only after the row
@@ -251,6 +255,8 @@ model/types.ts and used for the sidebar nav counts.
   `useAdminFlyers({ businessId })`. Rendered on the business review page.
 - `src/entities/flyer/api/flyer-queries.ts` — web trim of the app file:
   `fetchFlyer`, `normalizeFlyerEvents`, `upsertFlyerWithEvents`,
+  `saveFlyerWithTags` (its PGRST202 fallback skips the app's
+  `resolveTagNamesLegacy`: the dashboard never sends new tag names),
   `updateFlyer`, `deleteFlyer`, `uploadFlyerMedia` / `uploadFlyerCoverPhoto`
   (take a `Blob`; bucket `flyer-media`, paths `<id>/<ts>.jpg|pdf` and
   `<id>/cover-<ts>.jpg`, delete-after-upload — identical to the app),

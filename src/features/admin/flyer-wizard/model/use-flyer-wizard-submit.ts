@@ -13,13 +13,16 @@ import { type QueryClient, useQueryClient } from "@tanstack/react-query";
 import { useCallback, useRef, useState } from "react";
 import { adminKeys } from "@/entities/admin/api/use-admin";
 import * as queries from "@/entities/flyer/api/flyer-queries";
-import * as tagQueries from "@/entities/flyer/api/flyer-tag-queries";
 import { flyerKeys } from "@/entities/flyer/api/use-flyer";
 import {
   invokeMemberFlyerNotify,
   toMemberFlyerNotifyRecord,
 } from "@/entities/flyer/lib/send-member-flyer-notification";
-import type { Flyer, FlyerWithDetails } from "@/entities/flyer/model/types";
+import type {
+  Flyer,
+  FlyerTagSelection,
+  FlyerWithDetails,
+} from "@/entities/flyer/model/types";
 import { coverPhotoUploadBlob, mediaUploadBlob } from "../lib/media";
 import { buildUpsertInput } from "../lib/serialize-flyer-draft";
 import { isDraftPublishable } from "../lib/validate-wizard-step";
@@ -68,6 +71,11 @@ function resolveTarget(
         keepLiveAt: true,
       };
   }
+}
+
+/** The draft's tag set as the save RPC takes it. Web: no tag creation. */
+function tagSelection(draft: FlyerDraft): FlyerTagSelection {
+  return { tagIds: draft.tagIds, newTagNames: [] };
 }
 
 function invalidateBusinessFlyerQueries(
@@ -172,13 +180,14 @@ export function useFlyerWizardSubmit(
       // The storage path is keyed by the flyer id, so the row has to exist
       // before the upload. Insert it as a draft and flip it live only once the
       // media is in place: a live row with `media_url: ''` must never exist,
-      // even transiently or when the rollback below fails.
+      // even transiently or when the rollback below fails. Tags are saved in
+      // the same transaction as the insert.
       const input = await buildUpsertInput(draft, {
         businessId,
         status: "draft",
         mediaType: media.type,
       });
-      const flyer = await queries.upsertFlyerWithEvents(input);
+      const flyer = await queries.saveFlyerWithTags(input, tagSelection(draft));
       let saved: Flyer = flyer;
 
       try {
@@ -205,10 +214,6 @@ export function useFlyerWizardSubmit(
             ? { status: "live", live_at: new Date().toISOString() }
             : {}),
         });
-
-        if (draft.tagIds.length > 0) {
-          await tagQueries.setFlyerTags(flyer.id, draft.tagIds);
-        }
       } catch (error) {
         // Roll back the inserted row: without this, "please try again" retries
         // create duplicates (the row is still a draft, so it never reached feeds).
@@ -274,9 +279,11 @@ export function useFlyerWizardSubmit(
         mediaUrl,
         coverPhotoUrl,
       });
+      // Flyer, events and tags in one transaction: realtime announces the
+      // change only after commit, so tag-filtered feeds see the new tags.
       let updated: Flyer;
       try {
-        updated = await queries.upsertFlyerWithEvents(input);
+        updated = await queries.saveFlyerWithTags(input, tagSelection(draft));
       } catch (error) {
         // The row still points at the old assets; drop the orphaned uploads.
         await Promise.all([
@@ -291,7 +298,6 @@ export function useFlyerWizardSubmit(
         });
         throw error;
       }
-      await tagQueries.setFlyerTags(existing.id, draft.tagIds);
 
       // Replaced / removed assets are deleted only once the row no longer
       // references them. Best-effort: a leftover object is not a failed save.

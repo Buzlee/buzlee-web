@@ -53,6 +53,13 @@ export type UpsertFlyerWithEventsInput = {
   events: FlyerEventInput[];
 };
 
+/** A flyer's full tag set for a save: existing tags plus names typed in the wizard. */
+export type FlyerTagSelection = {
+  tagIds: string[];
+  /** Created (or matched to an existing tag) by the save, never before it. */
+  newTagNames: string[];
+};
+
 // Extended types for query results with joins
 export type FlyerWithDetails = Flyer & {
   business: {

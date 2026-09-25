@@ -20,6 +20,7 @@ import {
 } from "../lib/map-coordinates";
 import { isMapConfigured } from "../lib/map-style";
 import { useFilterStore } from "../model/use-filter-state";
+import { useTagFacetedFlyers } from "../model/use-tag-faceted-flyers";
 import { CategoryChips } from "./category-chips";
 import { FilterSheet } from "./filter-sheet";
 import { FlyerDetailPanel, FlyerStackPanel } from "./flyer-detail-panel";
@@ -72,7 +73,6 @@ export function DiscoveryScreen() {
     () =>
       filterStateToFlyerFilters(
         {
-          selectedTagIds,
           selectedCategoryIds,
           selectedTownIds,
           datePreset,
@@ -81,17 +81,14 @@ export function DiscoveryScreen() {
         },
         { restrictToLiveFlyers: true },
       ),
-    [
-      selectedTagIds,
-      selectedCategoryIds,
-      selectedTownIds,
-      datePreset,
-      dateRange,
-      timeOfDay,
-    ],
+    [selectedCategoryIds, selectedTownIds, datePreset, dateRange, timeOfDay],
   );
 
-  const { data: flyers = [], isLoading } = useFlyers(filters);
+  const { data: flyersBeforeTagFilter = [], isLoading } = useFlyers(filters);
+  const { flyers, tagFacets } = useTagFacetedFlyers(
+    flyersBeforeTagFilter,
+    selectedTagIds,
+  );
   const { data: focusFlyerDetail } = useFlyer(flyerIdParam ?? "");
 
   // Mobile parity: a deep-linked flyer is merged into the dataset even when
@@ -342,7 +339,11 @@ export function DiscoveryScreen() {
         </aside>
       </div>
 
-      <FilterSheet onOpenChange={setFilterOpen} open={filterOpen} />
+      <FilterSheet
+        onOpenChange={setFilterOpen}
+        open={filterOpen}
+        tagFacets={tagFacets}
+      />
     </div>
   );
 }

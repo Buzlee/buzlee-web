@@ -15,10 +15,12 @@ import type {
   Flyer,
   FlyerEvent,
   FlyerFilters,
+  FlyerTagSelection,
   FlyerUpdate,
   FlyerWithDetails,
   UpsertFlyerWithEventsInput,
 } from "../model/types";
+import * as tagQueries from "./flyer-tag-queries";
 
 /**
  * Relations every "flyer with details" query embeds. Shared with the
@@ -295,6 +297,61 @@ export async function upsertFlyerWithEvents(
 
   if (error) throw error;
   return data as Flyer;
+}
+
+/**
+ * Create or update a flyer, its events and its full tag set in one
+ * transaction (`save_flyer_with_tags`). New tag names are created or matched
+ * to an existing tag inside the same transaction. Realtime publishes the
+ * `flyers` change only after commit, so feeds never refetch a flyer whose tags
+ * are not written yet.
+ */
+export async function saveFlyerWithTags(
+  input: UpsertFlyerWithEventsInput,
+  tags: FlyerTagSelection,
+): Promise<Flyer> {
+  const { data, error } = await supabase.rpc("save_flyer_with_tags", {
+    p_flyer: input.flyer as never,
+    p_events: input.events as never,
+    p_tag_ids: tags.tagIds,
+    p_new_tag_names: tags.newTagNames,
+  });
+
+  // PGRST202: this branch has not run 20260925000000_flyer_tags_atomic_save
+  // yet. Remove this fallback once main has the migration.
+  if (error?.code === "PGRST202") {
+    console.warn(
+      "[flyer-queries] save_flyer_with_tags not available, saving tags separately",
+    );
+    return saveFlyerWithTagsLegacy(input, tags);
+  }
+  if (error) throw error;
+  return data as Flyer;
+}
+
+/**
+ * Pre-migration path: separate requests. Tags go in before the flyer write on
+ * an update so the realtime UPDATE comes last; a new flyer has no id yet, and
+ * callers insert new flyers as drafts, so nothing is announced before its tags.
+ * Web trim: the admin dashboard cannot create tags, so there are no new names
+ * to resolve here (the app's `resolveTagNamesLegacy` is not ported).
+ */
+async function saveFlyerWithTagsLegacy(
+  input: UpsertFlyerWithEventsInput,
+  tags: FlyerTagSelection,
+): Promise<Flyer> {
+  if (tags.newTagNames.length > 0) {
+    throw new Error("Creating tags needs the save_flyer_with_tags migration");
+  }
+  const existingId = input.flyer.id;
+  if (existingId) {
+    await tagQueries.setFlyerTags(existingId, tags.tagIds);
+    return upsertFlyerWithEvents(input);
+  }
+  const flyer = await upsertFlyerWithEvents(input);
+  if (tags.tagIds.length > 0)
+    await tagQueries.setFlyerTags(flyer.id, tags.tagIds);
+  return flyer;
 }
 
 /**

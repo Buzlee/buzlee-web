@@ -4,7 +4,6 @@ import type { FilterState } from "../model/filter-types";
 
 type FilterSlice = Pick<
   FilterState,
-  | "selectedTagIds"
   | "selectedCategoryIds"
   | "selectedTownIds"
   | "datePreset"
@@ -15,6 +14,8 @@ type FilterSlice = Pick<
 /**
  * Maps shared filter UI state to entity {@link FlyerFilters}.
  * Resident discovery sets `restrictToLiveFlyers`; business preview omits `isLive` and relies on RLS.
+ * Tags are not mapped: surfaces apply them on the client with `useTagFacetedFlyers`,
+ * which also derives the filter sheet's tag options from the same result.
  */
 export function filterStateToFlyerFilters(
   state: FilterSlice,
@@ -24,7 +25,6 @@ export function filterStateToFlyerFilters(
   if (options.restrictToLiveFlyers) {
     f.isLive = true;
   }
-  if (state.selectedTagIds.length > 0) f.tagIds = state.selectedTagIds;
   if (state.selectedCategoryIds.length > 0)
     f.categoryIds = state.selectedCategoryIds;
   if (state.selectedTownIds.length > 0) f.townIds = state.selectedTownIds;
