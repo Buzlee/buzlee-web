@@ -60,3 +60,9 @@ After deploy:
 - `open in app tapped` fires from the "Open in app", "App Store" and "Google Play" buttons with `target` = `app` / `app_store` / `play_store` plus the same ids.
 - Store links carry attribution: App Store `?ct=share_flyer|share_business`, Play `&referrer=utm_source%3Dshare%26utm_content%3D<id>`.
 - Event catalog and dashboards: `buzlee-app/docs/POSTHOG_TRACKING_PLAN.md` (WP4).
+
+## 8. Share page data (guest mode WP2)
+
+- `/flyer/[id]`, `/flyer/[id]/checkin` and `/business/[id]` read through the buzlee-app functions `get_public_flyer(p_id)` and `get_public_business(p_id)` (`src/shared/lib/supabase-public.ts`), never the tables. Since guest mode WP5 (dev and preview 2026-11-10, production later) the anon key reads no rows from `flyers`, `businesses`, `flyer_events` or `flyer_tags`.
+- A database without the functions answers PGRST202 and the pages fall back to the old table read. Remove the fallback once production has migration `20261109000100`.
+- Deploys: push a commit to `preview` on its own before fast-forwarding `dev` to it. When both branches receive the same SHA at once, Vercel builds it once and the `preview.app.buzlee.com` alias stays on the previous build (2026-11-10).
